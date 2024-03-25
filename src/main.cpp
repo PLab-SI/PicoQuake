@@ -1,18 +1,19 @@
 #include <Arduino.h>
+#include <SPI.h>
+#include <ICM42688P.h>
 
-// put function declarations here:
-int myFunction(int, int);
+ICM42688P icm(&SPI, 16, 1000000);
+
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  SPI.setRX(16);
+  SPI.setTX(19);
+  SPI.setSCK(18);
+  // SPI.setCS(cs);
+  SPI.begin();
+
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
 }
