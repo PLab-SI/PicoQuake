@@ -128,15 +128,15 @@ https://invensense.tdk.com/wp-content/uploads/2020/04/ds-000347_icm-42688-p-data
 #define WHOAMI_RETVAL                      0x47 
 
 typedef struct {
-    float x;
-    float y;
-    float z;
+    float accel_x;
+    float accel_y;
+    float accel_z;
 } ICM42688PAccelData;
 
 typedef struct {
-    float x;
-    float y;
-    float z;
+    float gyro_x;
+    float gyro_y;
+    float gyro_z;
 } ICM42688PGyroData;
 
 typedef struct {

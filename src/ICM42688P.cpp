@@ -93,9 +93,9 @@ ICM42688PAccelData ICM42688P::ReadAccel(){
     ICM42688PAccelData data;
     uint8_t buf[6];
     ReadMulti(ICM42688_ACCEL_DATA_X1, buf, 6);
-    data.x = (int16_t)(buf[0] << 8 | buf[1]) / _accel_full_scale;
-    data.y = (int16_t)(buf[2] << 8 | buf[3]) / _accel_full_scale;
-    data.z = (int16_t)(buf[4] << 8 | buf[5]) / _accel_full_scale;
+    data.accel_x = (int16_t)(buf[0] << 8 | buf[1]) / _accel_full_scale;
+    data.accel_y = (int16_t)(buf[2] << 8 | buf[3]) / _accel_full_scale;
+    data.accel_z = (int16_t)(buf[4] << 8 | buf[5]) / _accel_full_scale;
     return data;
 }
 
@@ -103,9 +103,9 @@ ICM42688PGyroData ICM42688P::ReadGyro(){
     ICM42688PGyroData data;
     uint8_t buf[6];
     ReadMulti(ICM42688_GYRO_DATA_X1, buf, 6);
-    data.x = (int16_t)(buf[0] << 8 | buf[1]) / _gyro_full_scale;
-    data.y = (int16_t)(buf[2] << 8 | buf[3]) / _gyro_full_scale;
-    data.z = (int16_t)(buf[4] << 8 | buf[5]) / _gyro_full_scale;
+    data.gyro_x = (int16_t)(buf[0] << 8 | buf[1]) / _gyro_full_scale;
+    data.gyro_y = (int16_t)(buf[2] << 8 | buf[3]) / _gyro_full_scale;
+    data.gyro_z = (int16_t)(buf[4] << 8 | buf[5]) / _gyro_full_scale;
     return data;
 }
 
