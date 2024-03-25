@@ -112,14 +112,14 @@ ICM42688PGyroData ICM42688P::ReadGyro(){
 ICM42688PAllData ICM42688P::ReadAll(){
     ICM42688PAllData data;
     uint8_t buf[14];
-    ReadMulti(ICM42688_ACCEL_DATA_X1, buf, 14);
-    data.accel_x = (int16_t)(buf[0] << 8 | buf[1]) / _accel_full_scale;
-    data.accel_y = (int16_t)(buf[2] << 8 | buf[3]) / _accel_full_scale;
-    data.accel_z = (int16_t)(buf[4] << 8 | buf[5]) / _accel_full_scale;
-    data.gyro_x = (int16_t)(buf[6] << 8 | buf[7]) / _gyro_full_scale;
-    data.gyro_y = (int16_t)(buf[8] << 8 | buf[9]) / _gyro_full_scale;
-    data.gyro_z = (int16_t)(buf[10] << 8 | buf[11]) / _gyro_full_scale;
-    data.temp = (int16_t)(buf[12] << 8 | buf[13]) / 132.48 + 25.0;
+    ReadMulti(ICM42688_TEMP_DATA1, buf, 14);
+    data.accel_x = (int16_t)(buf[2] << 8 | buf[3]) / _accel_full_scale;
+    data.accel_y = (int16_t)(buf[4] << 8 | buf[5]) / _accel_full_scale;
+    data.accel_z = (int16_t)(buf[6] << 8 | buf[7]) / _accel_full_scale;
+    data.gyro_x = (int16_t)(buf[8] << 8 | buf[9]) / _gyro_full_scale;
+    data.gyro_y = (int16_t)(buf[10] << 8 | buf[11]) / _gyro_full_scale;
+    data.gyro_z = (int16_t)(buf[12] << 8 | buf[13]) / _gyro_full_scale;
+    data.temp = (int16_t)(buf[0] << 8 | buf[1]) / 132.48 + 25.0;
     //todo: check temperture conversion
     return data;
 }
