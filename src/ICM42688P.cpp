@@ -124,3 +124,35 @@ ICM42688PAllData ICM42688P::ReadAll(){
     return data;
 }
 
+//todo: this resets all interrupt flags in the register. We might need a function that reads all of them if other interrupts are used.
+bool ICM42688P::CheckDataReady(){
+    uint8_t intStat =  ReadRegister(ICM42688_INT_STATUS);
+    //bit 3 is data ready flag
+    return (bool)(intStat & 0b00001000);
+}
+
+void ICM42688P::SetInt1PushPullActiveHighPulsed(){
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_INT_CONFIG);
+    //set bits 2:0 to 0b011 for pulsed mode, pushpull and active high
+    reg = reg & 0b11111000;
+    //bits 2:0 cleared
+    reg = reg | 0b011;
+    WriteRegister(ICM42688_INT_CONFIG, reg);
+}
+
+void ICM42688P::SoftReset(){
+    WriteRegister(ICM42688_DEVICE_CONFIG, 0x01);
+    delay(10); //according to datasheet, 1ms is enough
+    //todo: if needed, check soft reset done flag in ICM42688_INT_CONFIG
+}
+
+void ICM42688P::EnableDataReadyInt1(){
+    //enables data ready interrupt on INT1 pin. Pin needs to be config'd sepparately (pulsed, latching, etc.)
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_INT_SOURCE0);
+    //set bit 3 to 1 for data ready interrupt
+    reg = reg | 0b00001000;
+    WriteRegister(ICM42688_INT_CONFIG, reg);
+}
+

@@ -150,9 +150,6 @@ typedef struct {
 } ICM42688PAllData;
 
 
-
-
-
 class ICM42688P{
     public:
         ICM42688P(SPIClass *spi, uint8_t cs, uint32_t spiclk);
@@ -166,9 +163,14 @@ class ICM42688P{
 
         void Begin();
 
+        void SoftReset();
+        void SetInt1PushPullActiveHighPulsed();
+        void EnableDataReadyInt1();
+
         ICM42688PAccelData ReadAccel();
         ICM42688PGyroData ReadGyro();
         ICM42688PAllData ReadAll();
+        bool CheckDataReady();
    
         
 
