@@ -153,8 +153,60 @@ typedef struct {
 } ICM42688PAllData;
 
 
+
+
 class ICM42688P{
     public:
+        enum class GyroOutputDataRate {
+            RATE_32K = 0b0001,
+            RATE_16K = 0b0010,
+            RATE_8K = 0b0011,
+            RATE_4K = 0b0100,
+            RATE_2K = 0b0101,
+            RATE_1K = 0b0110,
+            RATE_500 = 0b1111,
+            RATE_200 = 0b0111,
+            RATE_100 = 0b1000,
+            RATE_50 = 0b1001,
+            RATE_25 = 0b1010,
+            RATE_12_5 = 0b1011
+        };
+
+        // Only rates that are supported in LN (normal) mode.
+        enum class AccelOutputDataRate {
+            RATE_32K = 0b0001,
+            RATE_16K = 0b0010,
+            RATE_8K = 0b0011,
+            RATE_4K = 0b0100,
+            RATE_2K = 0b0101,
+            RATE_1K = 0b0110,
+            RATE_500 = 0b1111,
+            RATE_200 = 0b0111,
+            RATE_100 = 0b1000,
+            RATE_50 = 0b1001,
+            RATE_25 = 0b1010,
+            RATE_12_5 = 0b1011,
+        };
+
+        enum class AccelFullScale {
+            RANGE_2G = 0b011,
+            RANGE_4G = 0b010,
+            RANGE_8G = 0b001,
+            RANGE_16G = 0b000
+        };
+
+        enum class GyroFullScale {
+            RANGE_15_625DPS = 0b111,
+            RANGE_31_25DPS = 0b110,
+            RANGE_62_5DPS = 0b101,
+            RANGE_125DPS = 0b100,
+            RANGE_250DPS = 0b011,
+            RANGE_500DPS = 0b010,
+            RANGE_1000DPS = 0b001,
+            RANGE_2000DPS = 0b000
+        };
+
+
         ICM42688P(SPIClass *spi, uint8_t cs, uint32_t spiclk, uint8_t int1_pin, uint8_t int2_pin);
         uint8_t ReadRegister(uint8_t reg);
         void ReadMulti(uint8_t reg_first, uint8_t *buf, uint8_t len);
@@ -169,7 +221,16 @@ class ICM42688P{
         void SoftReset();
         void SetInt1PushPullActiveHighPulsed();
         void EnableDataReadyInt1();
-        void setClockSourceInt2();
+        void setClockSourceExtInt2();
+
+        void SetAccelModeLn();
+        void SetGyroModeLn();
+        void SetAccelModeOff();
+        void SetGyroModeOff();
+        void setAccelFullScale(AccelFullScale scale);
+        void setGyroFullScale(GyroFullScale scale);
+        void SetAccelSampleRate(AccelOutputDataRate rate);
+        void SetGyroSampleRate(GyroOutputDataRate rate);
 
         ICM42688PAccelData ReadAccel();
         ICM42688PGyroData ReadGyro();

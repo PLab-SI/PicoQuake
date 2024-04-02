@@ -77,6 +77,7 @@ bool ICM42688P::WriteRegisterSecure(uint8_t reg, uint8_t data) {
 
 }
 
+// always return bank to 0!
 void ICM42688P::SelectBank(uint8_t bank){
     if(bank > 3){
         Serial.println("Invalid bank selection!");
@@ -178,14 +179,100 @@ void ICM42688P::StopClockGen(){
 }
 
 // clock generation on int2 needs to be enabled before this! Use StartClockGen()
-void ICM42688P::setClockSourceInt2(){
+void ICM42688P::setClockSourceExtInt2(){
     //select bank 1
     SelectBank(1);
-    //write INTF_CONFIG5 register to set int2 mode as clkin (to 0x04)
+    //write INTF_CONFIG5 register (bank 1) to set int2 pin mode as clkin (to 0x04)
     WriteRegister(ICM42688_INTF_CONFIG5, 0x04);
     //select bank 0
     SelectBank(0);
     // write register INTF_CONFIG1 clksel bits (register to 0x95 - sets RTC MODE bit)
     WriteRegister(ICM42688_INTF_CONFIG1, 0x95);
+}
+
+void ICM42688P::SetAccelModeLn(){
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_PWR_MGMT0);
+    //set bits 1:0 to enable low noise mode (low noise mode is default full performance mode)
+    reg |= 0b00000011;
+    WriteRegister(ICM42688_PWR_MGMT0, reg);
+    delay(1);  // wait to turn on (see datasheet)
+}
+
+void ICM42688P::SetAccelModeOff(){
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_PWR_MGMT0);
+    //reset bits 1:0 to power off accel
+    reg &= ~0b00000011;
+    WriteRegister(ICM42688_PWR_MGMT0, reg);
+}
+
+void ICM42688P::SetGyroModeLn(){
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_PWR_MGMT0);
+    //set bits 3:2 to enable low noise mode (low noise mode is default full performance mode)
+    reg |= 0b00001100;
+    WriteRegister(ICM42688_PWR_MGMT0, reg);
+    delay(1); // wait to turn on (see datasheet)
+}
+
+void ICM42688P::SetGyroModeOff(){
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_PWR_MGMT0);
+    //reset bits 3:2 to power off gyro
+    reg &= ~0b00001100;
+    WriteRegister(ICM42688_PWR_MGMT0, reg);
+}
+
+void ICM42688P::SetAccelSampleRate(AccelOutputDataRate rate){
+    //rate has a value that we need to set the register to. 4 LSB bits are valid, others 0
+    uint8_t rate_bits = (uint8_t)rate;
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_ACCEL_CONFIG0);
+    //set bits 3:0 according to sample rate
+    //clear bits 3:0, then set them according to rate
+    reg = (reg & 0b11111000) | rate_bits;
+    // write register
+    WriteRegister(ICM42688_ACCEL_CONFIG0, reg);
+}
+
+void ICM42688P::SetGyroSampleRate(GyroOutputDataRate rate){
+    //rate has a value that we need to set the register to. 4 LSB bits are valid, others 0
+    uint8_t rate_bits = (uint8_t)rate;
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_GYRO_CONFIG0);
+    //set bits 3:0 according to sample rate
+    //clear bits 3:0, then set them according to rate
+    reg = (reg & 0b11111000) | rate_bits;
+    // write register
+    WriteRegister(ICM42688_GYRO_CONFIG0, reg);
+}
+
+void ICM42688P:: setGyroFullScale(GyroFullScale scale){
+    //scale has a value that we need to set the register to. 3 LSB bits are valid, others 0
+    uint8_t scale_bits = (uint8_t)scale;
+    // shift bits to correct position (7:5)
+    scale_bits = scale_bits << 5;
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_GYRO_CONFIG0);
+    //set bits 7:5 according to scale
+    //clear bits 7:5, then set them according to scale
+    reg = (reg & 0b00011111) | scale_bits;
+    // write register
+    WriteRegister(ICM42688_GYRO_CONFIG0, reg);
+}
+
+void ICM42688P:: setAccelFullScale(AccelFullScale scale){
+    //scale has a value that we need to set the register to. 3 LSB bits are valid, others 0
+    uint8_t scale_bits = (uint8_t)scale;
+    // shift bits to correct position (7:5)
+    scale_bits = scale_bits << 5;
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_ACCEL_CONFIG0);
+    //set bits 7:5 according to scale
+    //clear bits 7:5, then set them according to scale
+    reg = (reg & 0b00011111) | scale_bits;
+    // write register
+    WriteRegister(ICM42688_ACCEL_CONFIG0, reg);
 }
 
