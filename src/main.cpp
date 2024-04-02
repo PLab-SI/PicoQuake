@@ -2,7 +2,7 @@
 #include <SPI.h>
 #include <ICM42688P.h>
 
-ICM42688P icm(&SPI, 16, 1000000);
+// ICM42688P icm(&SPI, 16, 1000000);
 
 
 void setup() {
@@ -12,8 +12,11 @@ void setup() {
   // SPI.setCS(cs);
   SPI.begin();
 
+
+
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  delay(100);
 }

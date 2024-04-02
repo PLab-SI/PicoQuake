@@ -1,16 +1,17 @@
 #include "ICM42688P.h"
 
-ICM42688P::ICM42688P(SPIClass *spi, uint8_t cs, uint32_t spiclk){
+ICM42688P::ICM42688P(SPIClass *spi, uint8_t cs, uint32_t spiclk, uint8_t int1_pin, uint8_t int2_pin){
     // SPI interface should be set up with correct pins outside of this class
     _spi = spi;
     _spiSettings = SPISettings(spiclk, MSBFIRST, SPI_MODE0);
     _cs = cs;
+    _int1_pin = int1_pin;
+    _int2_pin = int2_pin;
 }
 
 void ICM42688P::Begin(){
     pinMode(_cs, OUTPUT);
     digitalWrite(_cs, HIGH);
-    //todo: test comms / accel who am i
     uint8_t whoami = ReadRegister(ICM42688_WHO_AM_I);
     if(whoami != WHOAMI_RETVAL){
         Serial.println("ICM42688 not found! Stopping here!");
@@ -154,5 +155,25 @@ void ICM42688P::EnableDataReadyInt1(){
     //set bit 3 to 1 for data ready interrupt
     reg = reg | 0b00001000;
     WriteRegister(ICM42688_INT_CONFIG, reg);
+}
+
+//TODO: clock generation with analogWrite seems to be a bit jittery in some cases. verify if this is a problem / write custom implementation if needed
+void ICM42688P::StartClockGen(){
+    //set pin mode
+    pinMode(_int2_pin, OUTPUT);
+    //set resolution
+    analogWriteResolution(10);
+    //set frequency
+    analogWriteFreq(ICM42688_EXTERNAL_CLK_FREQ);
+    //start generating clock at 50% duty cycle
+    analogWrite(_int2_pin, 512);
+}
+
+void ICM42688P::StopClockGen(){
+    //stop generating clock
+    analogWrite(_int2_pin, 0);
+    digitalWrite(_int2_pin, LOW);
+    //set pin to input
+    pinMode(_int2_pin, INPUT);
 }
 

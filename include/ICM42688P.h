@@ -127,6 +127,9 @@ https://invensense.tdk.com/wp-content/uploads/2020/04/ds-000347_icm-42688-p-data
 
 #define WHOAMI_RETVAL                      0x47 
 
+//at 32kHz external clock, ODRs (output data rate) are as per datasheet. External clock can be 31kHz to 50Khz. ODR scales with clock frequency!
+#define ICM42688_EXTERNAL_CLK_FREQ                  32000UL
+
 typedef struct {
     float accel_x;
     float accel_y;
@@ -152,7 +155,7 @@ typedef struct {
 
 class ICM42688P{
     public:
-        ICM42688P(SPIClass *spi, uint8_t cs, uint32_t spiclk);
+        ICM42688P(SPIClass *spi, uint8_t cs, uint32_t spiclk, uint8_t int1_pin, uint8_t int2_pin);
         uint8_t ReadRegister(uint8_t reg);
         void ReadMulti(uint8_t reg_first, uint8_t *buf, uint8_t len);
         void WriteRegister(uint8_t reg, uint8_t data);
@@ -166,11 +169,15 @@ class ICM42688P{
         void SoftReset();
         void SetInt1PushPullActiveHighPulsed();
         void EnableDataReadyInt1();
+        void setClockSourceInt2();
 
         ICM42688PAccelData ReadAccel();
         ICM42688PGyroData ReadGyro();
         ICM42688PAllData ReadAll();
         bool CheckDataReady();
+
+        void StartClockGen();
+        void StopClockGen();
    
         
 
@@ -178,6 +185,8 @@ class ICM42688P{
         SPIClass *_spi;
         SPISettings _spiSettings;
         uint8_t _cs;
+        uint8_t _int1_pin;
+        uint8_t _int2_pin;
         uint8_t _bank_selected = 0;
         float _accel_full_scale = 16384.0;
         float _gyro_full_scale = 16.4;
