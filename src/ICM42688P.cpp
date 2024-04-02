@@ -177,3 +177,15 @@ void ICM42688P::StopClockGen(){
     pinMode(_int2_pin, INPUT);
 }
 
+// clock generation on int2 needs to be enabled before this! Use StartClockGen()
+void ICM42688P::setClockSourceInt2(){
+    //select bank 1
+    SelectBank(1);
+    //write INTF_CONFIG5 register to set int2 mode as clkin (to 0x04)
+    WriteRegister(ICM42688_INTF_CONFIG5, 0x04);
+    //select bank 0
+    SelectBank(0);
+    // write register INTF_CONFIG1 clksel bits (register to 0x95 - sets RTC MODE bit)
+    WriteRegister(ICM42688_INTF_CONFIG1, 0x95);
+}
+
