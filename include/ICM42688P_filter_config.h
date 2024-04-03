@@ -463,4 +463,79 @@ namespace filter_config {
 
 }
 
+// static constexpr const FilterConfig* filter_configss[] = {
+//   &filter_config::f_42hz,
+//   &filter_config::f_84hz,
+//   // ... rest of the elements ...
+//   &filter_config::f_3979hz
+// };
+
+// all of filter configs in array
+static constexpr FilterConfig filter_configs[] = {
+  filter_config::f_42hz,
+  filter_config::f_84hz,
+  filter_config::f_126hz,
+  filter_config::f_170hz,
+  filter_config::f_213hz,
+  filter_config::f_258hz,
+  filter_config::f_303hz,
+  filter_config::f_348hz,
+  filter_config::f_394hz,
+  filter_config::f_441hz,
+  filter_config::f_488hz,
+  filter_config::f_536hz,
+  filter_config::f_585hz,
+  filter_config::f_634hz,
+  filter_config::f_684hz,
+  filter_config::f_734hz,
+  filter_config::f_785hz,
+  filter_config::f_837hz,
+  filter_config::f_890hz,
+  filter_config::f_943hz,
+  filter_config::f_997hz,
+  filter_config::f_1051hz,
+  filter_config::f_1107hz,
+  filter_config::f_1163hz,
+  filter_config::f_1220hz,
+  filter_config::f_1277hz,
+  filter_config::f_1336hz,
+  filter_config::f_1395hz,
+  filter_config::f_1454hz,
+  filter_config::f_1515hz,
+  filter_config::f_1577hz,
+  filter_config::f_1639hz,
+  filter_config::f_1702hz,
+  filter_config::f_1766hz,
+  filter_config::f_1830hz,
+  filter_config::f_1896hz,
+  filter_config::f_1962hz,
+  filter_config::f_2029hz,
+  filter_config::f_2097hz,
+  filter_config::f_2166hz,
+  filter_config::f_2235hz,
+  filter_config::f_2306hz,
+  filter_config::f_2377hz,
+  filter_config::f_2449hz,
+  filter_config::f_2522hz,
+  filter_config::f_2596hz,
+  filter_config::f_2671hz,
+  filter_config::f_2746hz,
+  filter_config::f_2823hz,
+  filter_config::f_2900hz,
+  filter_config::f_2978hz,
+  filter_config::f_3057hz,
+  filter_config::f_3137hz,
+  filter_config::f_3217hz,
+  filter_config::f_3299hz,
+  filter_config::f_3381hz,
+  filter_config::f_3464hz,
+  filter_config::f_3548hz,
+  filter_config::f_3633hz,
+  filter_config::f_3718hz,
+  filter_config::f_3805hz,
+  filter_config::f_3892hz,
+  filter_config::f_3979hz
+};
+
+
 #endif // ICM42688P_FILTER_CONFIG_H
