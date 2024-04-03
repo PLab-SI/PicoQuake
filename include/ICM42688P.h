@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <SPI.h>
+#include "ICM42688P_filter_config.h"
 
 /* ICM42688 registers
 https://invensense.tdk.com/wp-content/uploads/2020/04/ds-000347_icm-42688-p-datasheet.pdf
@@ -231,6 +232,8 @@ class ICM42688P{
         void setGyroFullScale(GyroFullScale scale);
         void SetAccelSampleRate(AccelOutputDataRate rate);
         void SetGyroSampleRate(GyroOutputDataRate rate);
+        void SetAccelFilterBandwidth(const FilterConfig& bw);
+        void SetGyroFilterBandwidth(const FilterConfig& bw);
 
         ICM42688PAccelData ReadAccel();
         ICM42688PGyroData ReadGyro();
