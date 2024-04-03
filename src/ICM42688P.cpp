@@ -9,18 +9,17 @@ ICM42688P::ICM42688P(SPIClass *spi, uint8_t cs, uint32_t spiclk, uint8_t int1_pi
     _int2_pin = int2_pin;
 }
 
-void ICM42688P::Begin(){
+bool ICM42688P::Begin(){
     pinMode(_cs, OUTPUT);
     digitalWrite(_cs, HIGH);
     uint8_t whoami = ReadRegister(ICM42688_WHO_AM_I);
     if(whoami != WHOAMI_RETVAL){
         Serial.println("ICM42688 not found! Stopping here!");
-        while(1){
-            delay(100);
-        }
+        return false;
     }
     else{
         Serial.println("ICM42688 got correct whoami.");
+        return true;
     }
     //todo: set up external clock / other settings?
 }

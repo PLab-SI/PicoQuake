@@ -217,7 +217,7 @@ class ICM42688P{
         uint8_t GetBank();
 
 
-        void Begin();
+        bool Begin();
 
         void SoftReset();
         void SetInt1PushPullActiveHighPulsed();
