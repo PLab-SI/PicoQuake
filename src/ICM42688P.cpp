@@ -327,3 +327,57 @@ void ICM42688P::SetAccelFilterBandwidth(const FilterConfig& bw){
 
 }
 
+void ICM42688P::SetGyroFilterBandwidth(const FilterConfig& bw){
+    //registers are in bank2
+    SelectBank(2);
+
+    // *** DELT BITS ***
+    //get delt bits (6 bit number). 6 LSB are valid. Covert uint16 to uint8 to match register
+    uint8_t delt_bits = (uint8_t)bw.aaf_delt;
+    //delt bits are 6:1 in register ACCEL_CONFIG_STATIC2 of bank 2. bitshift bits to correct place
+    delt_bits = delt_bits << 1;
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_GYRO_CONFIG_STATIC2);
+    //clear bits 6:1, then set them according to delt_bits
+    reg = (reg & 0b10000001) | delt_bits;
+    // write register
+    WriteRegister(ICM42688_GYRO_CONFIG_STATIC2, reg);
+
+    // *** BITSHIFT BITS ***
+    //get bitshift bits (4 bit number). 4 LSB are valid. Covert uint16 to uint8 to match register
+    uint8_t bitshift_bits = (uint8_t)bw.aaf_bitshift;
+    //bitshift bits are 7:4 in register ACCEL_CONFIG_STATIC4 of bank 2. bitshift bits to correct place
+    bitshift_bits = bitshift_bits << 4;
+    //read register
+    reg = ReadRegister(ICM42688_GYRO_CONFIG_STATIC4);
+    //clear bits 7:4, then set them according to bitshift_bits
+    reg = (reg & 0b00001111) | bitshift_bits;
+    // write register
+    WriteRegister(ICM42688_GYRO_CONFIG_STATIC4, reg);
+
+    // *** DELTSQR BITS ***
+    //deltsqr bits (12 bit number) are in two regs:
+    //ACCEL_CONFIG_STATIC3(7:0) are deltsqr(7:0)
+    //ACCEL_CONFIG_STATIC4(3:0) are deltsqr(11:8)
+    uint16_t deltsqr_bits = bw.aaf_deltsqr;
+    // take bits 7:0
+    uint8_t deltsqr_7_0 = (uint8_t)(deltsqr_bits & 0xFF);
+    uint8_t deltsqr_11_8 = (uint8_t)((deltsqr_bits >> 8) & 0x0F);
+    // no bitshift needed, 7:0 is whole register, 11:8 are already on LSB side (3:0 in register)
+    //write static3 register. no read needed (only deltsqr 7:0 in register)
+    WriteRegister(ICM42688_GYRO_CONFIG_STATIC3, deltsqr_7_0);
+    //read register static4
+    reg = ReadRegister(ICM42688_GYRO_CONFIG_STATIC4);
+    //clear bits 3:0, then set them according to deltsqr_11_8
+    reg = (reg & 0b11110000) | deltsqr_11_8;
+    // write register
+    WriteRegister(ICM42688_GYRO_CONFIG_STATIC4, reg);
+
+
+    //return to bank 1
+    SelectBank(1);
+
+}
+
+
+
