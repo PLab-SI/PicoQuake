@@ -97,6 +97,7 @@ ICM42688PAccelData ICM42688P::ReadAccel(){
     data.accel_x = static_cast<int16_t>(buf[0] << 8 | buf[1]) / _accel_full_scale;
     data.accel_y = static_cast<int16_t>(buf[2] << 8 | buf[3]) / _accel_full_scale;
     data.accel_z = static_cast<int16_t>(buf[4] << 8 | buf[5]) / _accel_full_scale;
+    //bitshifting left on uint8 is possible due to automatic promotion to int
     return data;
 }
 
@@ -107,6 +108,7 @@ ICM42688PGyroData ICM42688P::ReadGyro(){
     data.gyro_x = static_cast<int16_t>(buf[0] << 8 | buf[1]) / _gyro_full_scale;
     data.gyro_y = static_cast<int16_t>(buf[2] << 8 | buf[3]) / _gyro_full_scale;
     data.gyro_z = static_cast<int16_t>(buf[4] << 8 | buf[5]) / _gyro_full_scale;
+    //bitshifting left on uint8 is possible due to automatic promotion to int
     return data;
 }
 
@@ -121,7 +123,7 @@ ICM42688PAllData ICM42688P::ReadAll(){
     data.gyro_y = static_cast<int16_t>(buf[10] << 8 | buf[11]) / _gyro_full_scale;
     data.gyro_z = static_cast<int16_t>(buf[12] << 8 | buf[13]) / _gyro_full_scale;
     data.temp = static_cast<int16_t>(buf[0] << 8 | buf[1]) / 132.48 + 25.0;
-    //todo: check temperture conversion
+    //bitshifting left on uint8 is possible due to automatic promotion to int
     return data;
 }
 
