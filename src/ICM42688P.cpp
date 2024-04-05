@@ -94,9 +94,9 @@ ICM42688PAccelData ICM42688P::ReadAccel(){
     ICM42688PAccelData data;
     uint8_t buf[6];
     ReadMulti(ICM42688_ACCEL_DATA_X1, buf, 6);
-    data.accel_x = (int16_t)(buf[0] << 8 | buf[1]) / _accel_full_scale;
-    data.accel_y = (int16_t)(buf[2] << 8 | buf[3]) / _accel_full_scale;
-    data.accel_z = (int16_t)(buf[4] << 8 | buf[5]) / _accel_full_scale;
+    data.accel_x = static_cast<int16_t>(buf[0] << 8 | buf[1]) / _accel_full_scale;
+    data.accel_y = static_cast<int16_t>(buf[2] << 8 | buf[3]) / _accel_full_scale;
+    data.accel_z = static_cast<int16_t>(buf[4] << 8 | buf[5]) / _accel_full_scale;
     return data;
 }
 
@@ -104,9 +104,9 @@ ICM42688PGyroData ICM42688P::ReadGyro(){
     ICM42688PGyroData data;
     uint8_t buf[6];
     ReadMulti(ICM42688_GYRO_DATA_X1, buf, 6);
-    data.gyro_x = (int16_t)(buf[0] << 8 | buf[1]) / _gyro_full_scale;
-    data.gyro_y = (int16_t)(buf[2] << 8 | buf[3]) / _gyro_full_scale;
-    data.gyro_z = (int16_t)(buf[4] << 8 | buf[5]) / _gyro_full_scale;
+    data.gyro_x = static_cast<int16_t>(buf[0] << 8 | buf[1]) / _gyro_full_scale;
+    data.gyro_y = static_cast<int16_t>(buf[2] << 8 | buf[3]) / _gyro_full_scale;
+    data.gyro_z = static_cast<int16_t>(buf[4] << 8 | buf[5]) / _gyro_full_scale;
     return data;
 }
 
@@ -114,13 +114,13 @@ ICM42688PAllData ICM42688P::ReadAll(){
     ICM42688PAllData data;
     uint8_t buf[14];
     ReadMulti(ICM42688_TEMP_DATA1, buf, 14);
-    data.accel_x = (int16_t)(buf[2] << 8 | buf[3]) / _accel_full_scale;
-    data.accel_y = (int16_t)(buf[4] << 8 | buf[5]) / _accel_full_scale;
-    data.accel_z = (int16_t)(buf[6] << 8 | buf[7]) / _accel_full_scale;
-    data.gyro_x = (int16_t)(buf[8] << 8 | buf[9]) / _gyro_full_scale;
-    data.gyro_y = (int16_t)(buf[10] << 8 | buf[11]) / _gyro_full_scale;
-    data.gyro_z = (int16_t)(buf[12] << 8 | buf[13]) / _gyro_full_scale;
-    data.temp = (int16_t)(buf[0] << 8 | buf[1]) / 132.48 + 25.0;
+    data.accel_x = static_cast<int16_t>(buf[2] << 8 | buf[3]) / _accel_full_scale;
+    data.accel_y = static_cast<int16_t>(buf[4] << 8 | buf[5]) / _accel_full_scale;
+    data.accel_z = static_cast<int16_t>(buf[6] << 8 | buf[7]) / _accel_full_scale;
+    data.gyro_x = static_cast<int16_t>(buf[8] << 8 | buf[9]) / _gyro_full_scale;
+    data.gyro_y = static_cast<int16_t>(buf[10] << 8 | buf[11]) / _gyro_full_scale;
+    data.gyro_z = static_cast<int16_t>(buf[12] << 8 | buf[13]) / _gyro_full_scale;
+    data.temp = static_cast<int16_t>(buf[0] << 8 | buf[1]) / 132.48 + 25.0;
     //todo: check temperture conversion
     return data;
 }
@@ -259,6 +259,37 @@ void ICM42688P:: setGyroFullScale(GyroFullScale scale){
     reg = (reg & 0b00011111) | scale_bits;
     // write register
     WriteRegister(ICM42688_GYRO_CONFIG0, reg);
+    switch(scale){
+        case GyroFullScale::RANGE_15_625DPS:
+            _gyro_full_scale = 32768.0/15.625;
+            break;
+        case GyroFullScale::RANGE_31_25DPS:
+            _gyro_full_scale = 32768.0/31.25;
+            break;
+        case GyroFullScale::RANGE_62_5DPS:
+            _gyro_full_scale = 32768.0/62.5;
+            break;
+        case GyroFullScale::RANGE_125DPS:
+            _gyro_full_scale = 32768.0/125.0;
+            break;
+        case GyroFullScale::RANGE_250DPS:
+            _gyro_full_scale = 32768.0/250.0;
+            break;
+        case GyroFullScale::RANGE_500DPS:
+            _gyro_full_scale = 32768.0/500.0;
+            break;
+        case GyroFullScale::RANGE_1000DPS:
+            _gyro_full_scale = 32768.0/1000.0;
+            break;
+        case GyroFullScale::RANGE_2000DPS:
+            _gyro_full_scale = 32768.0/2000.0;
+            break;
+        default:
+            // this never happens
+            _gyro_full_scale = 0.0;
+            break;
+            
+    }
 }
 
 void ICM42688P:: setAccelFullScale(AccelFullScale scale){
@@ -273,6 +304,25 @@ void ICM42688P:: setAccelFullScale(AccelFullScale scale){
     reg = (reg & 0b00011111) | scale_bits;
     // write register
     WriteRegister(ICM42688_ACCEL_CONFIG0, reg);
+    switch(scale){
+        case AccelFullScale::RANGE_2G:
+            _accel_full_scale = 16384.0;
+            break;
+        case AccelFullScale::RANGE_4G:
+            _accel_full_scale = 8192.0;
+            break;
+        case AccelFullScale::RANGE_8G:
+            _accel_full_scale = 4096.0;
+            break;
+        case AccelFullScale::RANGE_16G:
+            _accel_full_scale = 2048.0;
+            break;
+        default:
+            // this never happens
+            _accel_full_scale = 0.0;
+            break;
+            
+    }
 }
 
 void ICM42688P::SetAccelFilterBandwidth(const FilterConfig& bw){
