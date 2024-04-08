@@ -49,7 +49,9 @@ void setup() {
     vTaskDelay(5000);
     rp2040.reboot();
   }
-
+  icm.StartClockGen();
+  icm.setClockSourceExtInt2();
+  delay(100);
   icm.SetAccelModeLn();
   icm.SetGyroModeLn();
   icm.SetAccelSampleRate(ICM42688P::AccelOutputDataRate::RATE_12_5);
