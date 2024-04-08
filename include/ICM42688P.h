@@ -222,6 +222,8 @@ class ICM42688P{
         void SoftReset();
         void SetInt1PushPullActiveHighPulsed();
         void EnableDataReadyInt1();
+        void IntAsyncReset();
+        void DataReadyIntSetClearOnAnyRead();
         void setClockSourceExtInt2();
 
         void SetAccelModeLn();

@@ -18,6 +18,9 @@ static constexpr uint8_t usr_led = 4;
 //SPI clk
 static constexpr uint32_t spi_clk_hz = 1000000;
 
+// global interrupt flag for testing
+volatile bool interrupt_flag = false;
+
 ICM42688P icm(&SPI, cs, spi_clk_hz, int1, int2);
 
 
@@ -25,6 +28,7 @@ ICM42688P icm(&SPI, cs, spi_clk_hz, int1, int2);
 
 void DataReadyInterrupt(){
   //todo
+  interrupt_flag = true;
 }
 
 
@@ -49,16 +53,27 @@ void setup() {
     vTaskDelay(5000);
     rp2040.reboot();
   }
+  // switch to external clock
   icm.StartClockGen();
   icm.setClockSourceExtInt2();
   delay(100);
+  
+  // setup data ready interuupt
+  icm.IntAsyncReset();
+  icm.EnableDataReadyInt1();
+  icm.SetInt1PushPullActiveHighPulsed();
+  
+  icm.SetAccelSampleRate(ICM42688P::AccelOutputDataRate::RATE_200);
+  icm.SetGyroSampleRate(ICM42688P::GyroOutputDataRate::RATE_200);
+  //setup acel / gyro
   icm.SetAccelModeLn();
   icm.SetGyroModeLn();
-  icm.SetAccelSampleRate(ICM42688P::AccelOutputDataRate::RATE_12_5);
-  icm.SetGyroSampleRate(ICM42688P::GyroOutputDataRate::RATE_12_5);
+  
+
+  
   //
   //setup interrupt on INT1 pin
-  // attachInterrupt(int1, DataReadyInterrupt, RISING);
+  attachInterrupt(int1, DataReadyInterrupt, RISING);
 
 
 
@@ -66,10 +81,13 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  while(!icm.CheckDataReady());
+  // while(1);
+  // while(!icm.CheckDataReady());
+  while(!interrupt_flag);
   digitalWrite(usr_led, HIGH);
+  interrupt_flag = false;
   ICM42688PAllData data = icm.ReadAll();
-  Serial.println("#####################");
+  // Serial.println("#####################");
   // Serial.print("X: ");
   // Serial.print(data.accel_x);
   // Serial.print(" Y: ");

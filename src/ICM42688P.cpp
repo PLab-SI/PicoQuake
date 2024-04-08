@@ -153,12 +153,30 @@ void ICM42688P::SoftReset(){
 }
 
 void ICM42688P::EnableDataReadyInt1(){
+
     //enables data ready interrupt on INT1 pin. Pin needs to be config'd sepparately (pulsed, latching, etc.)
     //read register
     uint8_t reg = ReadRegister(ICM42688_INT_SOURCE0);
     //set bit 3 to 1 for data ready interrupt
     reg = reg | 0b00001000;
-    WriteRegister(ICM42688_INT_CONFIG, reg);
+    WriteRegister(ICM42688_INT_SOURCE0, reg);
+
+}
+
+void ICM42688P::IntAsyncReset(){
+    // INT_ASYNC_RESET of INT_CONFIG1 needs to be 0 for interrupts to work
+    uint8_t reg;
+    reg = ReadRegister(ICM42688_INT_CONFIG1);
+    reg = reg & 0b11101111;
+    WriteRegister(ICM42688_INT_CONFIG1, reg);
+}
+
+void ICM42688P::DataReadyIntSetClearOnAnyRead(){
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_INT_CONFIG0);
+    //set bits 5:4 to 11
+    reg = reg | 0b00110000;
+    WriteRegister(ICM42688_INT_CONFIG0, reg);
 }
 
 //TODO: clock generation with analogWrite seems to be a bit jittery in some cases. verify if this is a problem / write custom implementation if needed
