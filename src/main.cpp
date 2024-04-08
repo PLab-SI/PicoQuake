@@ -3,6 +3,7 @@
 #include <ICM42688P.h>
 #include <FreeRTOS.h>
 #include <task.h>
+#include "queue.h"
 
 //PINS
 //ICM42688P connections
@@ -18,9 +19,9 @@ static constexpr uint8_t usr_led = 4;
 //SPI clk (not exact - sets to first available lower value prolly?)
 static constexpr uint32_t spi_clk_hz = 16000000UL;
 
-// global interrupt flag for testing
-volatile bool interrupt_flag = false;
-ICM42688PAllData int_read_data;
+
+// freertos queue for data read from icm in interrupt
+QueueHandle_t raw_data;
 
 ICM42688P icm(&SPI, cs, spi_clk_hz, int1, int2);
 
@@ -30,13 +31,16 @@ ICM42688P icm(&SPI, cs, spi_clk_hz, int1, int2);
 void DataReadyInterrupt(){
   //todo
   digitalWrite(usr_led, HIGH);
-  int_read_data = icm.ReadAll();
+  ICM42688PAllData data = icm.ReadAll();
+  xQueueSendFromISR(raw_data, &data, NULL);
   digitalWrite(usr_led, LOW);
-  interrupt_flag = true;
 }
 
 
 void setup() {
+  raw_data = xQueueCreate(64, sizeof(ICM42688PAllData));
+
+
   delay(5000);
   Serial.begin(115200);
   Serial.println("PLab vibration probe boot ok!");
@@ -70,8 +74,8 @@ void setup() {
   icm.EnableDataReadyInt1();
   icm.SetInt1PushPullActiveHighPulsed();
   
-  icm.SetAccelSampleRate(ICM42688P::AccelOutputDataRate::RATE_200);
-  icm.SetGyroSampleRate(ICM42688P::GyroOutputDataRate::RATE_200);
+  icm.SetAccelSampleRate(ICM42688P::AccelOutputDataRate::RATE_500);
+  icm.SetGyroSampleRate(ICM42688P::GyroOutputDataRate::RATE_500);
   //setup acel / gyro
   icm.SetAccelModeLn();
   icm.SetGyroModeLn();
@@ -87,26 +91,19 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  // while(1);
-  // while(!icm.CheckDataReady());
-  while(!interrupt_flag);
-  // Serial.println("#####################");
-  // Serial.print("X: ");
-  // Serial.print(data.accel_x);
-  // Serial.print(" Y: ");
-  // Serial.print(data.accel_y);
-  // Serial.print(" Z: ");
-  // Serial.println(data.accel_z);
-  // Serial.print("Gyro X: ");
-  // Serial.print(data.gyro_x);
-  // Serial.print(" Gyro Y: ");
-  // Serial.print(data.gyro_y);
-  // Serial.print(" Gyro Z: ");
-  // Serial.println(data.gyro_z);
-  // Serial.print("Temp: ");
-  // Serial.println(data.temp);
-  Serial.println("AX: " + String(int_read_data.accel_x) + " AY: " + String(int_read_data.accel_y) + " AZ: " + String(int_read_data.accel_z) + " GX: " + String(int_read_data.gyro_x) + " GY: " + String(int_read_data.gyro_y) + " GZ: " + String(int_read_data.gyro_z) + " T: " + String(int_read_data.temp));
+  // check if anything is in queue and print it
+  // check if the queue is full
+  if(uxQueueSpacesAvailable(raw_data) == 0){
+    Serial.println("ERROR: QUEUE FULL!");
+  }
+  if(uxQueueMessagesWaiting(raw_data) > 0){
+    ICM42688PAllData pop_data;
+    xQueueReceive(raw_data, &pop_data, 0);
+    Serial.println("AX: " + String(pop_data.accel_x, 2) + " AY: " + String(pop_data.accel_y, 2) + " AZ: " + String(pop_data.accel_z, 2) + " GX: " + String(pop_data.gyro_x, 2) + " GY: " + String(pop_data.gyro_y, 2) + " GZ: " + String(pop_data.gyro_z, 2) + " T: " + String(pop_data.temp, 2));
+  }
+
+
+  
   // vTaskDelay(5);
   // digitalWrite(usr_led, LOW);
 
