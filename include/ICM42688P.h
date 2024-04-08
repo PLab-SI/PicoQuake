@@ -252,8 +252,8 @@ class ICM42688P{
         uint8_t _int1_pin;
         uint8_t _int2_pin;
         uint8_t _bank_selected = 0;
-        float _accel_full_scale = 32768.0/2000.0; //default is +-2000dps
-        float _gyro_full_scale = 2048.0; //default is +-16g
+        float _gyro_full_scale = 32768.0/2000.0; //default is +-2000dps
+        float _accel_full_scale = 2048.0; //default is +-16g
         //todo: check default and set when range is changed
 };
 
