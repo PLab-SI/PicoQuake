@@ -15,11 +15,12 @@ static constexpr uint8_t int2 = 27;
 //usr led
 static constexpr uint8_t usr_led = 4;
 
-//SPI clk
-static constexpr uint32_t spi_clk_hz = 10000000;
+//SPI clk (not exact - sets to first available lower value prolly?)
+static constexpr uint32_t spi_clk_hz = 16000000UL;
 
 // global interrupt flag for testing
 volatile bool interrupt_flag = false;
+ICM42688PAllData int_read_data;
 
 ICM42688P icm(&SPI, cs, spi_clk_hz, int1, int2);
 
@@ -28,6 +29,9 @@ ICM42688P icm(&SPI, cs, spi_clk_hz, int1, int2);
 
 void DataReadyInterrupt(){
   //todo
+  digitalWrite(usr_led, HIGH);
+  int_read_data = icm.ReadAll();
+  digitalWrite(usr_led, LOW);
   interrupt_flag = true;
 }
 
@@ -87,10 +91,6 @@ void loop() {
   // while(1);
   // while(!icm.CheckDataReady());
   while(!interrupt_flag);
-  digitalWrite(usr_led, HIGH);
-  interrupt_flag = false;
-  ICM42688PAllData data = icm.ReadAll();
-  digitalWrite(usr_led, LOW);
   // Serial.println("#####################");
   // Serial.print("X: ");
   // Serial.print(data.accel_x);
@@ -106,7 +106,7 @@ void loop() {
   // Serial.println(data.gyro_z);
   // Serial.print("Temp: ");
   // Serial.println(data.temp);
-  Serial.println("AX: " + String(data.accel_x) + " AY: " + String(data.accel_y) + " AZ: " + String(data.accel_z) + " GX: " + String(data.gyro_x) + " GY: " + String(data.gyro_y) + " GZ: " + String(data.gyro_z) + " T: " + String(data.temp));
+  Serial.println("AX: " + String(int_read_data.accel_x) + " AY: " + String(int_read_data.accel_y) + " AZ: " + String(int_read_data.accel_z) + " GX: " + String(int_read_data.gyro_x) + " GY: " + String(int_read_data.gyro_y) + " GZ: " + String(int_read_data.gyro_z) + " T: " + String(int_read_data.temp));
   // vTaskDelay(5);
   // digitalWrite(usr_led, LOW);
 
