@@ -19,6 +19,8 @@ bool ICM42688P::Begin(){
     }
     else{
         Serial.println("ICM42688 got correct whoami.");
+        // soft reboot ICM to ensure correct state
+        SoftReset();
         return true;
     }
     //todo: set up external clock / other settings?

@@ -52,8 +52,8 @@ void setup() {
 
   icm.SetAccelModeLn();
   icm.SetGyroModeLn();
-  icm.SetAccelSampleRate(ICM42688P::AccelOutputDataRate::RATE_25);
-  icm.SetGyroSampleRate(ICM42688P::GyroOutputDataRate::RATE_25);
+  icm.SetAccelSampleRate(ICM42688P::AccelOutputDataRate::RATE_12_5);
+  icm.SetGyroSampleRate(ICM42688P::GyroOutputDataRate::RATE_12_5);
   //
   //setup interrupt on INT1 pin
   // attachInterrupt(int1, DataReadyInterrupt, RISING);
@@ -68,21 +68,22 @@ void loop() {
   digitalWrite(usr_led, HIGH);
   ICM42688PAllData data = icm.ReadAll();
   Serial.println("#####################");
-  Serial.print("X: ");
-  Serial.print(data.accel_x);
-  Serial.print(" Y: ");
-  Serial.print(data.accel_y);
-  Serial.print(" Z: ");
-  Serial.println(data.accel_z);
-  Serial.print("Gyro X: ");
-  Serial.print(data.gyro_x);
-  Serial.print(" Gyro Y: ");
-  Serial.print(data.gyro_y);
-  Serial.print(" Gyro Z: ");
-  Serial.println(data.gyro_z);
-  Serial.print("Temp: ");
-  Serial.println(data.temp);
-  vTaskDelay(5);
+  // Serial.print("X: ");
+  // Serial.print(data.accel_x);
+  // Serial.print(" Y: ");
+  // Serial.print(data.accel_y);
+  // Serial.print(" Z: ");
+  // Serial.println(data.accel_z);
+  // Serial.print("Gyro X: ");
+  // Serial.print(data.gyro_x);
+  // Serial.print(" Gyro Y: ");
+  // Serial.print(data.gyro_y);
+  // Serial.print(" Gyro Z: ");
+  // Serial.println(data.gyro_z);
+  // Serial.print("Temp: ");
+  // Serial.println(data.temp);
+  Serial.println("AX: " + String(data.accel_x) + " AY: " + String(data.accel_y) + " AZ: " + String(data.accel_z) + " GX: " + String(data.gyro_x) + " GY: " + String(data.gyro_y) + " GZ: " + String(data.gyro_z) + " T: " + String(data.temp));
+  // vTaskDelay(5);
   digitalWrite(usr_led, LOW);
 
 
