@@ -225,6 +225,7 @@ class ICM42688P{
         void IntAsyncReset();
         void DataReadyIntSetClearOnAnyRead();
         void setClockSourceExtInt2();
+        void SetSpiDriveConfigBits(uint8_t bits);
 
         void SetAccelModeLn();
         void SetGyroModeLn();

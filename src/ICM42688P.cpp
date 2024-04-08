@@ -171,6 +171,16 @@ void ICM42688P::IntAsyncReset(){
     WriteRegister(ICM42688_INT_CONFIG1, reg);
 }
 
+//Warning: no bits validity checking! use with caution
+void ICM42688P::SetSpiDriveConfigBits(uint8_t bits){
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_DRIVE_CONFIG);
+    // set bits 2:0 to bits
+    reg = (reg & 0b11111000) | bits;
+    //write register
+    WriteRegister(ICM42688_DRIVE_CONFIG, reg);
+}
+
 void ICM42688P::DataReadyIntSetClearOnAnyRead(){
     //read register
     uint8_t reg = ReadRegister(ICM42688_INT_CONFIG0);
