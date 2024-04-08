@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+message IMUData {
+  uint64 count = 1;
+  float acc_x = 2;
+  float acc_y = 3;
+  float acc_z = 4;
+  float gyro_x = 5;
+  float gyro_y = 6;
+  float gyro_z = 7;
+}

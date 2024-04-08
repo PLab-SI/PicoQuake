@@ -1,10 +1,19 @@
 #include <Arduino.h>
 #include <SPI.h>
-#include <ICM42688P.h>
 #include <FreeRTOS.h>
 #include <task.h>
-#include "queue.h"
+#include <queue.h>
 #include <hardware/flash.h>
+#include <pb_encode.h>
+
+#include "pico/stdlib.h"
+
+#include "ICM42688P.h"
+#include "msg/messages.pb.h"
+#include "cobs.h"
+
+// Config
+static constexpr uint16_t kSampleQueueSize = 64;
 
 //PINS
 //ICM42688P connections
@@ -22,24 +31,63 @@ static constexpr uint32_t spi_clk_hz = 16000000UL;
 
 
 // freertos queue for data read from icm in interrupt
-QueueHandle_t raw_data;
+QueueHandle_t raw_data_q;
 
 ICM42688P icm(&SPI, cs, spi_clk_hz, int1, int2);
+uint64_t sample_count = 0;
 
+ICM42688PAllData imu_all_data;
+ICM42688PAllData q_pop_data;
 
-
+// packet framing
+IMUData pb_imu_data = IMUData_init_zero;
+pb_ostream_t nanopb_stream;
+uint8_t nanopb_buffer[IMUData_size];
+uint8_t out_buffer[IMUData_size + 3];
 
 void DataReadyInterrupt(){
   //todo
   digitalWrite(usr_led, HIGH);
-  ICM42688PAllData data = icm.ReadAll();
-  xQueueSendFromISR(raw_data, &data, NULL);
+  imu_all_data = icm.ReadAll();
+  xQueueSendFromISR(raw_data_q, &imu_all_data, NULL);
   digitalWrite(usr_led, LOW);
 }
 
+void SendIMUData() {
+  if(uxQueueMessagesWaiting(raw_data_q) > 0){
+    xQueueReceive(raw_data_q, &q_pop_data, 0);
+  } else {
+    return;
+  }
+
+  pb_imu_data.count = sample_count++;
+  pb_imu_data.acc_x = q_pop_data.accel_x;
+  pb_imu_data.acc_y = q_pop_data.accel_y;
+  pb_imu_data.acc_z = q_pop_data.accel_z;
+  pb_imu_data.gyro_x = q_pop_data.gyro_x;
+  pb_imu_data.gyro_y = q_pop_data.gyro_y;
+  pb_imu_data.gyro_z = q_pop_data.gyro_z;
+
+  // nanopb
+  nanopb_stream = pb_ostream_from_buffer(nanopb_buffer, sizeof(nanopb_buffer));
+  pb_encode(&nanopb_stream, IMUData_fields, &pb_imu_data);
+  size_t nanopb_size = nanopb_stream.bytes_written;
+
+  // COBS
+  cobs_encode_result cobs_result = cobs_encode(out_buffer + 1, 
+      sizeof(out_buffer) - 2, nanopb_buffer, nanopb_size);
+  
+  size_t out_packet_len = cobs_result.out_len + 2;
+      
+  out_buffer[0] = 0x00;
+  out_buffer[cobs_result.out_len + 1] = 0x00;
+
+  // Send
+  Serial.write(out_buffer, out_packet_len);
+}
 
 void setup() {
-  raw_data = xQueueCreate(64, sizeof(ICM42688PAllData));
+  raw_data_q = xQueueCreate(kSampleQueueSize, sizeof(ICM42688PAllData));
 
 
   delay(3000);
@@ -73,7 +121,7 @@ void setup() {
     rp2040.reboot();
   }
 
-  //set spi drive strength on icm (6-18ns) to reducec overshoot ob MISO
+  //set spi drive strength on icm (6-18ns) to reduce overshoot of MISO
   icm.SetSpiDriveConfigBits(0b100);
   // switch to external clock
   icm.StartClockGen();
@@ -86,48 +134,26 @@ void setup() {
   icm.EnableDataReadyInt1();
   icm.SetInt1PushPullActiveHighPulsed();
   
-  icm.SetAccelSampleRate(ICM42688P::AccelOutputDataRate::RATE_500);
-  icm.SetGyroSampleRate(ICM42688P::GyroOutputDataRate::RATE_500);
-  //setup acel / gyro
+  // setup accel / gyro
+  icm.SetAccelSampleRate(ICM42688P::AccelOutputDataRate::RATE_1K);
+  icm.SetGyroSampleRate(ICM42688P::GyroOutputDataRate::RATE_1K);
   icm.SetAccelModeLn();
   icm.SetGyroModeLn();
-  
 
-  
-  //
   //setup interrupt on INT1 pin
   attachInterrupt(int1, DataReadyInterrupt, RISING);
-
-
 
 }
 
 void loop() {
-  // check if anything is in queue and print it
-  // check if the queue is full
-  if(uxQueueSpacesAvailable(raw_data) == 0){
-    Serial.println("ERROR: QUEUE FULL!");
-  }
-  if(uxQueueMessagesWaiting(raw_data) > 0){
-    ICM42688PAllData pop_data;
-    xQueueReceive(raw_data, &pop_data, 0);
-    Serial.println("AX: " + String(pop_data.accel_x, 2) + " AY: " + String(pop_data.accel_y, 2) + " AZ: " + String(pop_data.accel_z, 2) + " GX: " + String(pop_data.gyro_x, 2) + " GY: " + String(pop_data.gyro_y, 2) + " GZ: " + String(pop_data.gyro_z, 2) + " T: " + String(pop_data.temp, 2));
-  }
+  delay(100);
+}
+
+void setup1() {
+  delay(6000);
+}
 
 
-  
-  // vTaskDelay(5);
-  // digitalWrite(usr_led, LOW);
-
-
-
-
-
-
-  // digitalWrite(usr_led, HIGH);
-  // Serial.println("Hello World ON!");
-  // vTaskDelay(1000);
-  // digitalWrite(usr_led, LOW);
-  // Serial.println("Hello World OFF!");
-  // vTaskDelay(1000);
+void loop1() {
+  SendIMUData();
 }
