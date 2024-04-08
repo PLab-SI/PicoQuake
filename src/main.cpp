@@ -42,18 +42,18 @@ void setup() {
   raw_data = xQueueCreate(64, sizeof(ICM42688PAllData));
 
 
-  delay(5000);
+  delay(3000);
   Serial.begin(115200);
   Serial.println("PLab vibration probe boot ok!");
-  uint8_t unique_id[10];
-  flash_get_unique_id(unique_id);
-  //print uid
-  Serial.print("UID: ");
-  for(int i = 0; i < 9; i++){
-    Serial.print(unique_id[i], HEX);
-  }
-  Serial.println();
-  delay(3000);
+  // uint8_t unique_id[10];
+  // flash_get_unique_id(unique_id);
+  // //print uid
+  // Serial.print("UID: ");
+  // for(int i = 0; i < 9; i++){
+  //   Serial.print(unique_id[i], HEX);
+  // }
+  // Serial.println();
+  // delay(3000);
 
   //set INT1 as input for data ready interrupt
   pinMode(int1, INPUT);
@@ -81,6 +81,7 @@ void setup() {
   delay(100);
   
   // setup data ready interuupt
+  icm.SetIntPulsesShort();
   icm.IntAsyncReset();
   icm.EnableDataReadyInt1();
   icm.SetInt1PushPullActiveHighPulsed();

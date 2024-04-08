@@ -171,6 +171,14 @@ void ICM42688P::IntAsyncReset(){
     WriteRegister(ICM42688_INT_CONFIG1, reg);
 }
 
+void ICM42688P::SetIntPulsesShort(){
+    //read register
+    uint8_t reg = ReadRegister(ICM42688_INT_CONFIG1);
+    //set bits 5:6 to 11 for 8us pulses
+    reg = reg | 0b01100000;
+    WriteRegister(ICM42688_INT_CONFIG1, reg);
+}
+
 //Warning: no bits validity checking! use with caution
 void ICM42688P::SetSpiDriveConfigBits(uint8_t bits){
     //read register
