@@ -57,6 +57,36 @@ void __time_critical_func(DataReadyInterrupt)(){
   digitalWrite(usr_led, LOW);
 }
 
+// basic ICM setup (prepared for sampling)
+void SetupICM(){
+  //set spi drive strength on icm (6-18ns) to reduce overshoot of MISO
+  icm.SetSpiDriveConfigBits(0b100);
+  // switch to external clock
+  icm.StartClockGen();
+  icm.setClockSourceExtInt2();
+  delay(100);
+  
+  // setup data ready interuupt
+  icm.SetIntPulsesShort();
+  icm.IntAsyncReset();
+  icm.EnableDataReadyInt1();
+  icm.SetInt1PushPullActiveHighPulsed();
+}
+
+// start sampling at specified rate
+void StartSampling(ICM42688P::OutputDataRate rate){
+  icm.SetAccelSampleRate(rate);
+  icm.SetGyroSampleRate(rate);
+  icm.SetAccelModeLn();
+  icm.SetGyroModeLn();
+}
+
+// stop sampling
+void StopSampling(){
+  icm.SetAccelModeOff();
+  icm.SetGyroModeOff();
+}
+
 void SendIMUData() {
   if(uxQueueMessagesWaiting(raw_data_q) > 0){
     xQueueReceive(raw_data_q, &q_pop_data, 0);
@@ -125,24 +155,9 @@ void setup() {
     rp2040.reboot();
   }
 
-  //set spi drive strength on icm (6-18ns) to reduce overshoot of MISO
-  icm.SetSpiDriveConfigBits(0b100);
-  // switch to external clock
-  icm.StartClockGen();
-  icm.setClockSourceExtInt2();
-  delay(100);
+  SetupICM();
   
-  // setup data ready interuupt
-  icm.SetIntPulsesShort();
-  icm.IntAsyncReset();
-  icm.EnableDataReadyInt1();
-  icm.SetInt1PushPullActiveHighPulsed();
-  
-  // setup accel / gyro
-  icm.SetAccelSampleRate(ICM42688P::AccelOutputDataRate::RATE_1K);
-  icm.SetGyroSampleRate(ICM42688P::GyroOutputDataRate::RATE_1K);
-  icm.SetAccelModeLn();
-  icm.SetGyroModeLn();
+  StartSampling(ICM42688P::OutputDataRate::RATE_4K);
 
   //setup interrupt on INT1 pin
   attachInterrupt(int1, DataReadyInterrupt, RISING);

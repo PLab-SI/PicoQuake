@@ -158,23 +158,10 @@ typedef struct {
 
 class ICM42688P{
     public:
-        enum class GyroOutputDataRate {
-            RATE_32K = 0b0001,
-            RATE_16K = 0b0010,
-            RATE_8K = 0b0011,
-            RATE_4K = 0b0100,
-            RATE_2K = 0b0101,
-            RATE_1K = 0b0110,
-            RATE_500 = 0b1111,
-            RATE_200 = 0b0111,
-            RATE_100 = 0b1000,
-            RATE_50 = 0b1001,
-            RATE_25 = 0b1010,
-            RATE_12_5 = 0b1011
-        };
 
         // Only rates that are supported in LN (normal) mode.
-        enum class AccelOutputDataRate {
+        // same for accel and gyro
+        enum class OutputDataRate {
             RATE_32K = 0b0001,
             RATE_16K = 0b0010,
             RATE_8K = 0b0011,
@@ -234,8 +221,8 @@ class ICM42688P{
         void SetGyroModeOff();
         void setAccelFullScale(AccelFullScale scale);
         void setGyroFullScale(GyroFullScale scale);
-        void SetAccelSampleRate(AccelOutputDataRate rate);
-        void SetGyroSampleRate(GyroOutputDataRate rate);
+        void SetAccelSampleRate(OutputDataRate rate);
+        void SetGyroSampleRate(OutputDataRate rate);
         void SetAccelFilterBandwidth(const FilterConfig& bw);
         void SetGyroFilterBandwidth(const FilterConfig& bw);
 

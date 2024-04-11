@@ -263,7 +263,7 @@ void ICM42688P::SetGyroModeOff(){
     WriteRegister(ICM42688_PWR_MGMT0, reg);
 }
 
-void ICM42688P::SetAccelSampleRate(AccelOutputDataRate rate){
+void ICM42688P::SetAccelSampleRate(OutputDataRate rate){
     //rate has a value that we need to set the register to. 4 LSB bits are valid, others 0
     uint8_t rate_bits = (uint8_t)rate;
     //read register
@@ -275,7 +275,7 @@ void ICM42688P::SetAccelSampleRate(AccelOutputDataRate rate){
     WriteRegister(ICM42688_ACCEL_CONFIG0, reg);
 }
 
-void ICM42688P::SetGyroSampleRate(GyroOutputDataRate rate){
+void ICM42688P::SetGyroSampleRate(OutputDataRate rate){
     //rate has a value that we need to set the register to. 4 LSB bits are valid, others 0
     uint8_t rate_bits = (uint8_t)rate;
     //read register
