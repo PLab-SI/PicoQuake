@@ -32,6 +32,7 @@ static constexpr uint32_t spi_clk_hz = 16000000UL;
 
 // freertos queue for data read from icm in interrupt
 QueueHandle_t raw_data_q;
+volatile uint32_t buff_full_sample_missed_count = 0;
 
 ICM42688P icm(&SPI, cs, spi_clk_hz, int1, int2);
 uint64_t sample_count = 0;
@@ -49,7 +50,10 @@ void DataReadyInterrupt(){
   //todo
   digitalWrite(usr_led, HIGH);
   imu_all_data = icm.ReadAll();
-  xQueueSendFromISR(raw_data_q, &imu_all_data, NULL);
+  if(xQueueSendFromISR(raw_data_q, &imu_all_data, NULL) != pdTRUE){
+    // queue send error - queue full!
+    buff_full_sample_missed_count++;
+  }
   digitalWrite(usr_led, LOW);
 }
 
@@ -146,7 +150,9 @@ void setup() {
 }
 
 void loop() {
-  delay(100);
+  // todo: listen for cmd packets
+  // todo: send status packet
+  delay(1000);
 }
 
 void setup1() {
