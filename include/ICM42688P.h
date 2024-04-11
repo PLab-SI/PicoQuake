@@ -239,9 +239,9 @@ class ICM42688P{
         void SetAccelFilterBandwidth(const FilterConfig& bw);
         void SetGyroFilterBandwidth(const FilterConfig& bw);
 
-        ICM42688PAccelData ReadAccel();
-        ICM42688PGyroData ReadGyro();
-        ICM42688PAllData ReadAll();
+        ICM42688PAccelData __time_critical_func(ReadAccel)();
+        ICM42688PGyroData __time_critical_func(ReadGyro)();
+        ICM42688PAllData __time_critical_func(ReadAll)();
         bool CheckDataReady();
 
         void StartClockGen();

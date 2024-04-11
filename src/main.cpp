@@ -46,7 +46,7 @@ pb_ostream_t nanopb_stream;
 uint8_t nanopb_buffer[IMUData_size];
 uint8_t out_buffer[IMUData_size + 3];
 
-void DataReadyInterrupt(){
+void __time_critical_func(DataReadyInterrupt)(){
   //todo
   digitalWrite(usr_led, HIGH);
   imu_all_data = icm.ReadAll();
