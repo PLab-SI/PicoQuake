@@ -412,8 +412,8 @@ void ICM42688P::SetAccelFilterBandwidth(const FilterConfig& bw){
     WriteRegister(ICM42688_ACCEL_CONFIG_STATIC4, reg);
 
 
-    //return to bank 1
-    SelectBank(1);
+    //return to bank 0
+    SelectBank(0);
 
 }
 
@@ -464,8 +464,8 @@ void ICM42688P::SetGyroFilterBandwidth(const FilterConfig& bw){
     WriteRegister(ICM42688_GYRO_CONFIG_STATIC4, reg);
 
 
-    //return to bank 1
-    SelectBank(1);
+    //return to bank 0
+    SelectBank(0);
 
 }
 

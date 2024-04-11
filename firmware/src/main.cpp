@@ -74,12 +74,17 @@ void SetupICM(){
   icm.SetInt1PushPullActiveHighPulsed();
 }
 
-// start sampling at specified rate
-void StartSampling(ICM42688P::OutputDataRate rate){
+// start sampling at specified settings. To change settings, stop sampling and use this function again
+void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale accel_range, ICM42688P::GyroFullScale gyro_range, FilterConfig filter_cfg){
   icm.SetAccelSampleRate(rate);
   icm.SetGyroSampleRate(rate);
+  icm.setAccelFullScale(accel_range);
+  icm.setGyroFullScale(gyro_range);
+  icm.SetAccelFilterBandwidth(filter_cfg);
   icm.SetAccelModeLn();
+  delay(10);
   icm.SetGyroModeLn();
+  delay(10);
 }
 
 // stop sampling
@@ -165,9 +170,18 @@ void ParseIncoming() {
 void setup() {
   raw_data_q = xQueueCreate(kSampleQueueSize, sizeof(ICM42688PAllData));
 
+//set INT1 as input for data ready interrupt
+pinMode(int1, INPUT);
+pinMode(usr_led, OUTPUT);
+  
+
 
   delay(3000);
   Serial.begin(115200);
+  digitalWrite(usr_led, HIGH);
+  delay(100);
+  digitalWrite(usr_led, LOW);
+  delay(500);
   Serial.println("PLab vibration probe boot ok!");
   // uint8_t unique_id[10];
   // flash_get_unique_id(unique_id);
@@ -178,10 +192,6 @@ void setup() {
   // }
   // Serial.println();
   // delay(3000);
-
-  //set INT1 as input for data ready interrupt
-  pinMode(int1, INPUT);
-  pinMode(usr_led, OUTPUT);
 
   SPI.setRX(spi_miso);
   SPI.setTX(spi_mosi);
@@ -199,7 +209,7 @@ void setup() {
 
   SetupICM();
   
-  StartSampling(ICM42688P::OutputDataRate::RATE_4K);
+  StartSampling(ICM42688P::OutputDataRate::RATE_4K, ICM42688P::AccelFullScale::RANGE_16G, ICM42688P::GyroFullScale::RANGE_2000DPS, filter_config::f_126hz);
 
   //setup interrupt on INT1 pin
   attachInterrupt(int1, DataReadyInterrupt, RISING);
@@ -209,6 +219,7 @@ void setup() {
 void loop() {
   // todo: listen for cmd packets
   // todo: send status packet
+  // Serial.println("loop");
   delay(1000);
 }
 
