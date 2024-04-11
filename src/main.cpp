@@ -5,6 +5,7 @@
 #include <queue.h>
 #include <hardware/flash.h>
 #include <pb_encode.h>
+#include <pb_decode.h>
 
 #include "pico/stdlib.h"
 
@@ -118,6 +119,47 @@ void SendIMUData() {
 
   // Send
   Serial.write(out_buffer, out_packet_len);
+}
+
+
+#define START_FLAG 0x00
+#define END_FLAG 0x00
+#define BUF_SIZE 64
+
+void ParseIncoming() {
+  static uint8_t buf[BUF_SIZE];
+  static size_t buf_index = 0;
+
+  while (Serial.available()) {
+    uint8_t byte = Serial.read();
+
+    if (byte == START_FLAG) {
+      buf_index = 0;
+    } else if (byte == END_FLAG) {
+      if (buf_index > 0) {
+        // Decode COBS
+        uint8_t decoded[BUF_SIZE];
+        cobs_decode_result result = cobs_decode(decoded, sizeof(decoded), buf, buf_index);
+
+        if (result.status == COBS_DECODE_OK) {
+          // Use nanopb to decode the message
+          pb_istream_t stream = pb_istream_from_buffer(decoded, result.out_len);
+          IMUData msg = IMUData_init_zero;
+
+          if (pb_decode(&stream, IMUData_fields, &msg)) {
+            // Handle the decoded message
+          } else {
+            // Handle the error
+          }
+        } else {
+          // Handle the error
+        }
+      }
+      buf_index = 0;
+    } else if (buf_index < BUF_SIZE) {
+      buf[buf_index++] = byte;
+    }
+  }
 }
 
 void setup() {
