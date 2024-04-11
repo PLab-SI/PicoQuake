@@ -1,7 +1,0 @@
-Compile proto for C:
-pip install nanopb
-nanopb_generator src/imu_data.proto
-
-Compile proto for Python:
-brew install protobuf
-protoc src/imu_data.proto --python_out .

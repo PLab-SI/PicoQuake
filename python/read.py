@@ -5,7 +5,7 @@ from google.protobuf.json_format import MessageToDict
 import json
 from time import time
 
-PORT = "/dev/cu.usbmodem101"
+PORT = "/dev/cu.usbmodem212201"
 
 ser = Serial(PORT, 115200)
 buffer = b''

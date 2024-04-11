@@ -10,7 +10,7 @@
 #include "pico/stdlib.h"
 
 #include "ICM42688P.h"
-#include "msg/messages.pb.h"
+#include "messages.pb.h"
 #include "cobs.h"
 
 // Config
