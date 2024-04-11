@@ -28,7 +28,7 @@ static constexpr uint8_t int2 = 27;
 static constexpr uint8_t usr_led = 4;
 
 //SPI clk (not exact - sets to first available lower value prolly?)
-static constexpr uint32_t spi_clk_hz = 16000000UL;
+static constexpr uint32_t spi_clk_hz = 25000000UL;
 
 
 // freertos queue for data read from icm in interrupt
@@ -168,11 +168,13 @@ void ParseIncoming() {
 }
 
 void setup() {
+  // set_sys_clock_khz(270000, true);
+
   raw_data_q = xQueueCreate(kSampleQueueSize, sizeof(ICM42688PAllData));
 
-//set INT1 as input for data ready interrupt
-pinMode(int1, INPUT);
-pinMode(usr_led, OUTPUT);
+  //set INT1 as input for data ready interrupt
+  pinMode(int1, INPUT);
+  pinMode(usr_led, OUTPUT);
   
 
 
