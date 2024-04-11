@@ -34,14 +34,14 @@ while True:
                 # d = MessageToDict(message, including_default_value_fields=True)
                 # print(json.dumps(d, indent=2))
 
-                print(f"cnt:{message.count}, a_x:{message.acc_x:+.2f}, a_y:{message.acc_y:+.2f}, a_z:{message.acc_z:+.2f}")
+                # print(f"cnt:{message.count}, a_x:{message.acc_x:+.2f}, a_y:{message.acc_y:+.2f}, a_z:{message.acc_z:+.2f}")
                 
-                # N = 10_000
-                # if message.count % N == 0:
-                #     print(f"cnt:{message.count:,}, a_x:{message.acc_x:+.2f},"
-                #         f"a_y:{message.acc_y:+.2f}, a_z:{message.acc_z:+.2f},"
-                #         f"freq: {N / (time() - last_time):.2f} Hz")
-                #     last_time = time()
+                N = 10_000
+                if message.count % N == 0:
+                    print(f"cnt:{message.count:,}, a_x:{message.acc_x:+.2f},"
+                        f"a_y:{message.acc_y:+.2f}, a_z:{message.acc_z:+.2f},"
+                        f"freq: {N / (time() - last_time):.2f} Hz")
+                    last_time = time()
 
                 # if message.count == 0:
                 #     start_time = time()
