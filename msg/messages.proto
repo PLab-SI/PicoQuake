@@ -1,5 +1,7 @@
 syntax = "proto3";
+import "nanopb.proto";
 
+// id = 0x01;
 message IMUData {
   uint64 count = 1;
   float acc_x = 2;
@@ -8,4 +10,25 @@ message IMUData {
   float gyro_x = 5;
   float gyro_y = 6;
   float gyro_z = 7;
+}
+
+// id = 0x02;
+message Status {
+  uint32 state = 1 [(nanopb).int_size = IS_8];
+  float temperature = 2;
+  uint32 missed_samples = 3;
+}
+
+message DeviceInfo {
+  bytes unique_id = 1 [(nanopb).max_size = 8, (nanopb).fixed_length = true];
+  bytes firmware = 2 [(nanopb).max_size = 9, (nanopb).fixed_length = true];
+}
+
+// id = 0x03;
+message Command {
+  uint32 state = 1 [(nanopb).int_size = IS_8];
+  uint32 filter_config = 2 [(nanopb).int_size = IS_8];
+  uint32 data_rate = 3 [(nanopb).int_size = IS_8];
+  uint32 acc_range = 4 [(nanopb).int_size = IS_8];
+  uint32 gyro_range = 5 [(nanopb).int_size = IS_8];
 }

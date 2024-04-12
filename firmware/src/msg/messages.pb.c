@@ -9,4 +9,13 @@
 PB_BIND(IMUData, IMUData, AUTO)
 
 
+PB_BIND(Status, Status, AUTO)
+
+
+PB_BIND(DeviceInfo, DeviceInfo, AUTO)
+
+
+PB_BIND(Command, Command, AUTO)
+
+
 
