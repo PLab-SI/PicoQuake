@@ -31,6 +31,13 @@ static constexpr uint8_t usr_led = 4;
 static constexpr uint32_t spi_clk_hz = 25000000UL;
 
 
+//packed IDs
+static constexpr uint8_t imu_data_id = 0x01;
+static constexpr uint8_t status_id = 0x02;
+static constexpr uint8_t device_info_id = 0x03;
+static constexpr uint8_t command_id = 0x04;
+
+
 // freertos queue for data read from icm in interrupt
 QueueHandle_t raw_data_q;
 volatile uint32_t buff_full_sample_missed_count = 0;
@@ -45,7 +52,7 @@ ICM42688PAllData q_pop_data;
 IMUData pb_imu_data = IMUData_init_zero;
 pb_ostream_t nanopb_stream;
 uint8_t nanopb_buffer[IMUData_size];
-uint8_t out_buffer[IMUData_size + 3];
+uint8_t out_buffer[IMUData_size + 4]; // start 0x00, end 0x00, cobs overhead, ID byte (right after start byte)
 
 void __time_critical_func(DataReadyInterrupt)(){
   //todo
@@ -113,14 +120,17 @@ void SendIMUData() {
   pb_encode(&nanopb_stream, IMUData_fields, &pb_imu_data);
   size_t nanopb_size = nanopb_stream.bytes_written;
 
+  //add ID to the front of the packet. ID is never 0, no need to run cobs on it
+
   // COBS
-  cobs_encode_result cobs_result = cobs_encode(out_buffer + 1, 
-      sizeof(out_buffer) - 2, nanopb_buffer, nanopb_size);
+  cobs_encode_result cobs_result = cobs_encode(out_buffer + 2, 
+      sizeof(out_buffer) - 3, nanopb_buffer, nanopb_size);
   
   size_t out_packet_len = cobs_result.out_len + 2;
       
-  out_buffer[0] = 0x00;
-  out_buffer[cobs_result.out_len + 1] = 0x00;
+  out_buffer[1] = imu_data_id; //id byte
+  out_buffer[0] = 0x00; //start byte
+  out_buffer[cobs_result.out_len + 1] = 0x00; //end byte
 
   // Send
   Serial.write(out_buffer, out_packet_len);
