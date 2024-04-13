@@ -54,6 +54,10 @@ pb_ostream_t nanopb_stream;
 uint8_t nanopb_buffer[IMUData_size];
 uint8_t out_buffer[IMUData_size + 4]; // start 0x00, end 0x00, cobs overhead, ID byte (right after start byte)
 
+//incoming data stuff
+uint8_t incoming_buffer[64];
+uint8_t incoming_cobs_buffer[64];
+
 void __time_critical_func(DataReadyInterrupt)(){
   //todo
   digitalWrite(usr_led, HIGH);
@@ -100,6 +104,10 @@ void StopSampling(){
   icm.SetGyroModeOff();
 }
 
+void HandleCommand(Command cmd){
+  //todo
+}
+
 void SendIMUData() {
   if(uxQueueMessagesWaiting(raw_data_q) > 0){
     xQueueReceive(raw_data_q, &q_pop_data, 0);
@@ -137,43 +145,69 @@ void SendIMUData() {
 }
 
 
-#define START_FLAG 0x00
-#define END_FLAG 0x00
 #define BUF_SIZE 64
 
 void ParseIncoming() {
-  static uint8_t buf[BUF_SIZE];
   static size_t buf_index = 0;
 
   while (Serial.available()) {
     uint8_t byte = Serial.read();
 
-    if (byte == START_FLAG) {
-      buf_index = 0;
-    } else if (byte == END_FLAG) {
-      if (buf_index > 0) {
-        // Decode COBS
-        uint8_t decoded[BUF_SIZE];
-        cobs_decode_result result = cobs_decode(decoded, sizeof(decoded), buf, buf_index);
-
-        if (result.status == COBS_DECODE_OK) {
-          // Use nanopb to decode the message
-          pb_istream_t stream = pb_istream_from_buffer(decoded, result.out_len);
-          IMUData msg = IMUData_init_zero;
-
-          if (pb_decode(&stream, IMUData_fields, &msg)) {
-            // Handle the decoded message
-          } else {
-            // Handle the error
-          }
-        } else {
-          // Handle the error
+    if (byte == 0x00 && buf_index == 0) { //start byte 0x00
+      // start byte detected, increment buffer index
+      buf_index++;
+      return;
+    }
+    if(byte == 0x00 && buf_index == 1){
+      // two 0x00 in a row. first was incorrectly interpreted as start byte but was actually end byte. This byte is now start, reset index to 1
+      // tldr: if multiple 0x00 in a row, last one is taken as start byte
+      buf_index = 1;
+      return;
+    }
+    if(byte == 0x00 && buf_index > 1){ //end byte 0x00
+      // end byte detected, process the buffer
+      uint8_t packet_id = incoming_buffer[1];
+      //decode COBS
+      cobs_decode_result result = cobs_decode(incoming_cobs_buffer, sizeof(incoming_cobs_buffer), incoming_buffer+1, buf_index-2);
+      if(result.status == COBS_DECODE_OK){
+        // Use nanopb to decode the message
+        pb_istream_t stream = pb_istream_from_buffer(incoming_cobs_buffer, result.out_len);
+        //switch to decode different packet types (not needed for now, only command is received)
+        switch(packet_id){
+          case status_id:{ //namespace brackets to be able to initialize msg
+            Command msg = Command_init_zero;
+            if (pb_decode(&stream, Command_fields, &msg)) {
+              // Handle the decoded message
+              HandleCommand(msg);
+            }
+            else {
+              // Handle nanopb the error
+            }
+            }break;
+          default:
+            return;
+            break;
         }
       }
-      buf_index = 0;
-    } else if (buf_index < BUF_SIZE) {
-      buf[buf_index++] = byte;
+      else {
+        // Handle COBS the error
+      }
+
+
+      buf_index = 0; //reset buffer index
+      return;
     }
+    else{ // normal bytes in between start and end
+      if(buf_index < BUF_SIZE){
+        //add to buffer and increment index
+        incoming_buffer[buf_index++] = byte;
+      } else {
+        // buffer full ERROR
+        while(1);
+        return;
+      }
+    }
+
   }
 }
 
