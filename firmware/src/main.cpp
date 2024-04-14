@@ -58,6 +58,13 @@ uint8_t out_buffer[IMUData_size + 4]; // start 0x00, end 0x00, cobs overhead, ID
 uint8_t incoming_buffer[64];
 uint8_t incoming_cobs_buffer[64];
 
+// state enum
+enum State {
+  IDLE = 0,
+  SAMPLING = 1,
+  ERROR = 2
+};
+
 void __time_critical_func(DataReadyInterrupt)(){
   //todo
   digitalWrite(usr_led, HIGH);
@@ -67,6 +74,78 @@ void __time_critical_func(DataReadyInterrupt)(){
     buff_full_sample_missed_count++;
   }
   digitalWrite(usr_led, LOW);
+}
+
+ICM42688P::OutputDataRate IdxToRate(uint8_t idx){
+  switch(idx){
+    case 0:
+      return ICM42688P::OutputDataRate::RATE_12_5;
+    case 1:
+      return ICM42688P::OutputDataRate::RATE_25;
+    case 2:
+      return ICM42688P::OutputDataRate::RATE_50;
+    case 3:
+      return ICM42688P::OutputDataRate::RATE_100;
+    case 4: 
+      return ICM42688P::OutputDataRate::RATE_200;
+    case 5:
+      return ICM42688P::OutputDataRate::RATE_500;
+    case 6:
+      return ICM42688P::OutputDataRate::RATE_1K;
+    case 7:
+      return ICM42688P::OutputDataRate::RATE_2K;
+    case 8:
+      return ICM42688P::OutputDataRate::RATE_4K;
+    case 9:
+      return ICM42688P::OutputDataRate::RATE_8K;
+    case 10:  
+      return ICM42688P::OutputDataRate::RATE_16K;
+    case 11:
+      return ICM42688P::OutputDataRate::RATE_32K;
+    default:
+      Serial.println("Invalid rate idx");
+      return ICM42688P::OutputDataRate::RATE_12_5; //defaults to lowest if invalid
+  }
+}
+
+ICM42688P::AccelFullScale IdxToAccelRange(uint8_t idx){
+  switch(idx){
+    case 0:
+      return ICM42688P::AccelFullScale::RANGE_2G;
+    case 1:
+      return ICM42688P::AccelFullScale::RANGE_4G;
+    case 2:
+      return ICM42688P::AccelFullScale::RANGE_8G;
+    case 3:
+      return ICM42688P::AccelFullScale::RANGE_16G;
+    default:
+      Serial.println("Invalid accel range idx");
+      return ICM42688P::AccelFullScale::RANGE_16G; //defaults to highest if invalid
+  }
+}
+
+ICM42688P::GyroFullScale IdxToGyroRange(uint8_t idx){
+  switch(idx){
+    case 0:
+      return ICM42688P::GyroFullScale::RANGE_15_625DPS;
+    case 1:
+      return ICM42688P::GyroFullScale::RANGE_31_25DPS;
+    case 2:
+      return ICM42688P::GyroFullScale::RANGE_62_5DPS;
+    case 3:
+      return ICM42688P::GyroFullScale::RANGE_125DPS;
+    case 4:
+      return ICM42688P::GyroFullScale::RANGE_250DPS;
+    case 5:
+      return ICM42688P::GyroFullScale::RANGE_500DPS;
+    case 6:
+      return ICM42688P::GyroFullScale::RANGE_1000DPS;
+    case 7:
+      return ICM42688P::GyroFullScale::RANGE_2000DPS;
+    default:
+      Serial.println("Invalid gyro range idx");
+      return ICM42688P::GyroFullScale::RANGE_2000DPS; //defaults to highest if invalid
+  }
 }
 
 // basic ICM setup (prepared for sampling)
@@ -87,6 +166,10 @@ void SetupICM(){
 
 // start sampling at specified settings. To change settings, stop sampling and use this function again
 void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale accel_range, ICM42688P::GyroFullScale gyro_range, FilterConfig filter_cfg){
+  //todo: quickfix for now (rate not hot changing correctly)
+  icm.SoftReset();
+  SetupICM();
+  // ...
   icm.SetAccelSampleRate(rate);
   icm.SetGyroSampleRate(rate);
   icm.setAccelFullScale(accel_range);
@@ -106,7 +189,33 @@ void StopSampling(){
 
 void HandleCommand(Command cmd){
   //todo
+  // id = 0x04;
+// message Command {
+// uint32 state = 1 [(nanopb).int_size = IS_8];
+// uint32 filter_config = 2 [(nanopb).int_size = IS_8];
+// uint32 data_rate = 3 [(nanopb).int_size = IS_8];
+// uint32 acc_range = 4 [(nanopb).int_size = IS_8];
+// uint32 gyro_range = 5 [(nanopb).int_size = IS_8];
+
+// class State(Enum):
+//     IDLE = 0
+//     SAMPLING = 1
+//     ERROR = 2
+
+  switch(cmd.state){
+    case State::IDLE:
+      StopSampling();
+      break;
+    case State::SAMPLING:
+      StartSampling(IdxToRate(cmd.data_rate), IdxToAccelRange(cmd.acc_range), IdxToGyroRange(cmd.gyro_range), filter_configs[cmd.filter_config]);
+      break;
+    default:
+      break;
+  }
+  
+
 }
+
 
 void SendIMUData() {
   if(uxQueueMessagesWaiting(raw_data_q) > 0){
@@ -151,34 +260,45 @@ void ParseIncoming() {
   static size_t buf_index = 0;
 
   while (Serial.available()) {
+    // digitalWrite(usr_led, HIGH);
     uint8_t byte = Serial.read();
 
     if (byte == 0x00 && buf_index == 0) { //start byte 0x00
+      // digitalWrite(usr_led, HIGH);
       // start byte detected, increment buffer index
       buf_index++;
       return;
     }
     if(byte == 0x00 && buf_index == 1){
+      // digitalWrite(usr_led, HIGH);
       // two 0x00 in a row. first was incorrectly interpreted as start byte but was actually end byte. This byte is now start, reset index to 1
       // tldr: if multiple 0x00 in a row, last one is taken as start byte
-      buf_index = 1;
+      buf_index = 0;
       return;
     }
     if(byte == 0x00 && buf_index > 1){ //end byte 0x00
+      // digitalWrite(usr_led, HIGH);
       // end byte detected, process the buffer
       uint8_t packet_id = incoming_buffer[1];
+      if(packet_id == 0x04){
+        // digitalWrite(usr_led, HIGH);
+      }
       //decode COBS
-      cobs_decode_result result = cobs_decode(incoming_cobs_buffer, sizeof(incoming_cobs_buffer), incoming_buffer+1, buf_index-2);
+      cobs_decode_result result = cobs_decode(incoming_cobs_buffer, sizeof(incoming_cobs_buffer), incoming_buffer+2, buf_index-2);
       if(result.status == COBS_DECODE_OK){
+        // digitalWrite(usr_led, HIGH);
         // Use nanopb to decode the message
         pb_istream_t stream = pb_istream_from_buffer(incoming_cobs_buffer, result.out_len);
         //switch to decode different packet types (not needed for now, only command is received)
+        // digitalWrite(usr_led, HIGH);
         switch(packet_id){
-          case status_id:{ //namespace brackets to be able to initialize msg
+          case command_id:{ //namespace brackets to be able to initialize msg
+            // digitalWrite(usr_led, HIGH);
             Command msg = Command_init_zero;
             if (pb_decode(&stream, Command_fields, &msg)) {
               // Handle the decoded message
               HandleCommand(msg);
+              // digitalWrite(usr_led, HIGH);
             }
             else {
               // Handle nanopb the error
@@ -224,10 +344,6 @@ void setup() {
 
   delay(3000);
   Serial.begin(115200);
-  digitalWrite(usr_led, HIGH);
-  delay(100);
-  digitalWrite(usr_led, LOW);
-  delay(500);
   Serial.println("PLab vibration probe boot ok!");
   // uint8_t unique_id[10];
   // flash_get_unique_id(unique_id);
@@ -255,18 +371,21 @@ void setup() {
 
   SetupICM();
   
-  StartSampling(ICM42688P::OutputDataRate::RATE_4K, ICM42688P::AccelFullScale::RANGE_16G, ICM42688P::GyroFullScale::RANGE_2000DPS, filter_config::f_126hz);
+  // StartSampling(ICM42688P::OutputDataRate::RATE_4K, ICM42688P::AccelFullScale::RANGE_16G, ICM42688P::GyroFullScale::RANGE_2000DPS, filter_config::f_126hz);
 
   //setup interrupt on INT1 pin
   attachInterrupt(int1, DataReadyInterrupt, RISING);
 
+  digitalWrite(usr_led, HIGH);
+  delay(100);
+  digitalWrite(usr_led, LOW);
+  delay(500);
+
 }
 
 void loop() {
-  // todo: listen for cmd packets
-  // todo: send status packet
-  // Serial.println("loop");
-  delay(1000);
+  ParseIncoming();
+  // delay(10);
 }
 
 void setup1() {

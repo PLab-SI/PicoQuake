@@ -110,8 +110,9 @@ class PicoQuake:
         msg.data_rate = config.data_rate.value
         msg.acc_range = config.acc_range.value
         msg.gyro_range = config.gyro_range.value
-        packet = bytes([PacketID.COMMAND.value]) + msg.SerializeToString()
-        packet = cobs.encode(packet)
+        packet = cobs.encode(msg.SerializeToString())
+        packet = bytes([0x00]) +  bytes([PacketID.COMMAND.value]) + packet + bytes([0x00])
+        # print(packet)
         self._out_packet_queue.put_nowait(packet)
 
     def _stop(self):
