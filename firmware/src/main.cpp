@@ -134,11 +134,11 @@ void SendIMUData() {
   cobs_encode_result cobs_result = cobs_encode(out_buffer + 2, 
       sizeof(out_buffer) - 3, nanopb_buffer, nanopb_size);
   
-  size_t out_packet_len = cobs_result.out_len + 2;
+  size_t out_packet_len = cobs_result.out_len + 3;
       
-  out_buffer[1] = imu_data_id; //id byte
   out_buffer[0] = 0x00; //start byte
-  out_buffer[cobs_result.out_len + 1] = 0x00; //end byte
+  out_buffer[1] = imu_data_id; //id byte
+  out_buffer[out_packet_len - 1] = 0x00; //end byte
 
   // Send
   Serial.write(out_buffer, out_packet_len);

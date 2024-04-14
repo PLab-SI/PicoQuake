@@ -28,12 +28,13 @@ typedef struct _Status {
     uint32_t missed_samples;
 } Status;
 
+/* id = 0x03; */
 typedef struct _DeviceInfo {
     pb_byte_t unique_id[8];
     pb_byte_t firmware[9];
 } DeviceInfo;
 
-/* id = 0x03; */
+/* id = 0x04; */
 typedef struct _Command {
     uint8_t state;
     uint8_t filter_config;

@@ -19,12 +19,13 @@ message Status {
   uint32 missed_samples = 3;
 }
 
+// id = 0x03;
 message DeviceInfo {
   bytes unique_id = 1 [(nanopb).max_size = 8, (nanopb).fixed_length = true];
   bytes firmware = 2 [(nanopb).max_size = 9, (nanopb).fixed_length = true];
 }
 
-// id = 0x03;
+// id = 0x04;
 message Command {
   uint32 state = 1 [(nanopb).int_size = IS_8];
   uint32 filter_config = 2 [(nanopb).int_size = IS_8];

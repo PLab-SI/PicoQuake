@@ -1,0 +1,4 @@
+pyserial
+protobuf
+nanopb
+cobs
