@@ -140,7 +140,7 @@ class PicoQuake:
                         if len(self._sample_list) >= self._measure_n_samples:
                             self._stop_sampling()
                 elif isinstance(msg, messages_pb2.Status):
-                    self._last_status_time = time.time()
+                    self._last_status_time = time()
                     if msg.state == State.ERROR.value:
                         self._stop()
                         raise Exception("Device in error state")

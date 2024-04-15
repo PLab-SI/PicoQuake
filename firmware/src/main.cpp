@@ -37,6 +37,21 @@ static constexpr uint8_t status_id = 0x02;
 static constexpr uint8_t device_info_id = 0x03;
 static constexpr uint8_t command_id = 0x04;
 
+// send status interval
+static constexpr uint32_t status_send_interval_ms = 500;
+
+// state enum
+enum State {
+  IDLE = 0,
+  SAMPLING = 1,
+  ERROR = 2
+};
+
+enum Error{
+  NO_ERROR = 0,
+  SENSOR_COMMS_ERROR = 1,
+};
+
 
 // freertos queue for data read from icm in interrupt
 QueueHandle_t raw_data_q;
@@ -58,17 +73,23 @@ uint8_t out_buffer[IMUData_size + 4]; // start 0x00, end 0x00, cobs overhead, ID
 uint8_t incoming_buffer[64];
 uint8_t incoming_cobs_buffer[64];
 
-// state enum
-enum State {
-  IDLE = 0,
-  SAMPLING = 1,
-  ERROR = 2
-};
+//status stuff
+Status pb_status_data = Status_init_zero;
+pb_ostream_t nanopb_status_stream;
+uint8_t nanopb_status_buffer[Status_size];
+uint8_t out_status_buffer[Status_size + 4]; // start 0x00, end 0x00, cobs overhead, ID byte (right after start byte)
+volatile float last_measured_temp = 0.0;
+State global_state = State::IDLE;
+Error global_error = Error::NO_ERROR;
+
+
 
 void __time_critical_func(DataReadyInterrupt)(){
   //todo
   digitalWrite(usr_led, HIGH);
   imu_all_data = icm.ReadAll();
+  //save temperature for status packet
+  last_measured_temp = imu_all_data.temp;
   if(xQueueSendFromISR(raw_data_q, &imu_all_data, NULL) != pdTRUE){
     // queue send error - queue full!
     buff_full_sample_missed_count++;
@@ -216,6 +237,34 @@ void HandleCommand(Command cmd){
 
 }
 
+void SendStatus(){
+  //todo
+  pb_status_data.temperature = last_measured_temp;
+  pb_status_data.state = global_state;
+  pb_status_data.error_code = global_error;
+  pb_status_data.missed_samples = buff_full_sample_missed_count;
+  
+  // nanopb
+  nanopb_status_stream = pb_ostream_from_buffer(nanopb_status_buffer, sizeof(nanopb_status_buffer));
+  pb_encode(&nanopb_status_stream, Status_fields, &pb_status_data);
+  size_t nanopb_size = nanopb_status_stream.bytes_written;
+
+  //COBS
+  cobs_encode_result cobs_result = cobs_encode(out_status_buffer + 2, 
+      sizeof(out_status_buffer) - 3, nanopb_status_buffer, nanopb_size);
+  
+  size_t out_packet_len = cobs_result.out_len + 3;
+
+  out_status_buffer[0] = 0x00; //start byte
+  //add ID to the front of the packet. ID is never 0, no need to run cobs on it
+  out_status_buffer[1] = status_id; //id byte
+  out_status_buffer[out_packet_len - 1] = 0x00; //end byte
+
+  // Send
+  Serial.write(out_status_buffer, out_packet_len);
+
+}
+
 
 void SendIMUData() {
   if(uxQueueMessagesWaiting(raw_data_q) > 0){
@@ -237,7 +286,6 @@ void SendIMUData() {
   pb_encode(&nanopb_stream, IMUData_fields, &pb_imu_data);
   size_t nanopb_size = nanopb_stream.bytes_written;
 
-  //add ID to the front of the packet. ID is never 0, no need to run cobs on it
 
   // COBS
   cobs_encode_result cobs_result = cobs_encode(out_buffer + 2, 
@@ -246,6 +294,7 @@ void SendIMUData() {
   size_t out_packet_len = cobs_result.out_len + 3;
       
   out_buffer[0] = 0x00; //start byte
+  //add ID to the front of the packet. ID is never 0, no need to run cobs on it
   out_buffer[1] = imu_data_id; //id byte
   out_buffer[out_packet_len - 1] = 0x00; //end byte
 
@@ -363,10 +412,16 @@ void setup() {
 
   //begin ICM42688P
   if(!icm.Begin()){
-    Serial.println("ICM42688P not found Stopping here!");
-    Serial.println("Rebooting in 5 seconds...");
-    vTaskDelay(5000);
-    rp2040.reboot();
+    global_error = Error::SENSOR_COMMS_ERROR;
+    while(1){
+      //send error status in loop, do nothing else
+      digitalWrite(usr_led, HIGH);
+      SendStatus();
+      delay(250);
+      digitalWrite(usr_led, LOW);
+      delay(250);
+
+    }
   }
 
   SetupICM();
@@ -384,8 +439,12 @@ void setup() {
 }
 
 void loop() {
+  static uint32_t last_status_send_time = 0;
   ParseIncoming();
-  // delay(10);
+  if(millis() - last_status_send_time > status_send_interval_ms){
+    SendStatus();
+    last_status_send_time = millis();
+  }
 }
 
 void setup1() {

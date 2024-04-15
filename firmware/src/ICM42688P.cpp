@@ -14,7 +14,7 @@ bool ICM42688P::Begin(){
     digitalWrite(_cs, HIGH);
     uint8_t whoami = ReadRegister(ICM42688_WHO_AM_I);
     if(whoami != WHOAMI_RETVAL){
-        Serial.println("ICM42688 not found! Stopping here!");
+        Serial.println("ICM42688 not found!");
         return false;
     }
     else{
