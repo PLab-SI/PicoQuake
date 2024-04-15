@@ -12,10 +12,10 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-from . import nanopb_pb2
+from .import nanopb_pb2 as nanopb__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12msg/messages.proto\x1a\x0cnanopb.proto\"u\n\x07IMUData\x12\r\n\x05\x63ount\x18\x01 \x01(\x04\x12\r\n\x05\x61\x63\x63_x\x18\x02 \x01(\x02\x12\r\n\x05\x61\x63\x63_y\x18\x03 \x01(\x02\x12\r\n\x05\x61\x63\x63_z\x18\x04 \x01(\x02\x12\x0e\n\x06gyro_x\x18\x05 \x01(\x02\x12\x0e\n\x06gyro_y\x18\x06 \x01(\x02\x12\x0e\n\x06gyro_z\x18\x07 \x01(\x02\"K\n\x06Status\x12\x14\n\x05state\x18\x01 \x01(\rB\x05\x92?\x02\x38\x08\x12\x13\n\x0btemperature\x18\x02 \x01(\x02\x12\x16\n\x0emissed_samples\x18\x03 \x01(\r\"C\n\nDeviceInfo\x12\x1a\n\tunique_id\x18\x01 \x01(\x0c\x42\x07\x92?\x04\x08\x08x\x01\x12\x19\n\x08\x66irmware\x18\x02 \x01(\x0c\x42\x07\x92?\x04\x08\tx\x01\"\x8c\x01\n\x07\x43ommand\x12\x14\n\x05state\x18\x01 \x01(\rB\x05\x92?\x02\x38\x08\x12\x1c\n\rfilter_config\x18\x02 \x01(\rB\x05\x92?\x02\x38\x08\x12\x18\n\tdata_rate\x18\x03 \x01(\rB\x05\x92?\x02\x38\x08\x12\x18\n\tacc_range\x18\x04 \x01(\rB\x05\x92?\x02\x38\x08\x12\x19\n\ngyro_range\x18\x05 \x01(\rB\x05\x92?\x02\x38\x08\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12msg/messages.proto\x1a\x0cnanopb.proto\"u\n\x07IMUData\x12\r\n\x05\x63ount\x18\x01 \x01(\x04\x12\r\n\x05\x61\x63\x63_x\x18\x02 \x01(\x02\x12\r\n\x05\x61\x63\x63_y\x18\x03 \x01(\x02\x12\r\n\x05\x61\x63\x63_z\x18\x04 \x01(\x02\x12\x0e\n\x06gyro_x\x18\x05 \x01(\x02\x12\x0e\n\x06gyro_y\x18\x06 \x01(\x02\x12\x0e\n\x06gyro_z\x18\x07 \x01(\x02\"f\n\x06Status\x12\x14\n\x05state\x18\x01 \x01(\rB\x05\x92?\x02\x38\x08\x12\x13\n\x0btemperature\x18\x02 \x01(\x02\x12\x16\n\x0emissed_samples\x18\x03 \x01(\r\x12\x19\n\nerror_code\x18\x04 \x01(\rB\x05\x92?\x02\x38\x08\"C\n\nDeviceInfo\x12\x1a\n\tunique_id\x18\x01 \x01(\x0c\x42\x07\x92?\x04\x08\x08x\x01\x12\x19\n\x08\x66irmware\x18\x02 \x01(\x0c\x42\x07\x92?\x04\x08\tx\x01\"\x8c\x01\n\x07\x43ommand\x12\x14\n\x05state\x18\x01 \x01(\rB\x05\x92?\x02\x38\x08\x12\x1c\n\rfilter_config\x18\x02 \x01(\rB\x05\x92?\x02\x38\x08\x12\x18\n\tdata_rate\x18\x03 \x01(\rB\x05\x92?\x02\x38\x08\x12\x18\n\tacc_range\x18\x04 \x01(\rB\x05\x92?\x02\x38\x08\x12\x19\n\ngyro_range\x18\x05 \x01(\rB\x05\x92?\x02\x38\x08\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -24,6 +24,8 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   _globals['_STATUS'].fields_by_name['state']._options = None
   _globals['_STATUS'].fields_by_name['state']._serialized_options = b'\222?\0028\010'
+  _globals['_STATUS'].fields_by_name['error_code']._options = None
+  _globals['_STATUS'].fields_by_name['error_code']._serialized_options = b'\222?\0028\010'
   _globals['_DEVICEINFO'].fields_by_name['unique_id']._options = None
   _globals['_DEVICEINFO'].fields_by_name['unique_id']._serialized_options = b'\222?\004\010\010x\001'
   _globals['_DEVICEINFO'].fields_by_name['firmware']._options = None
@@ -41,9 +43,9 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_IMUDATA']._serialized_start=36
   _globals['_IMUDATA']._serialized_end=153
   _globals['_STATUS']._serialized_start=155
-  _globals['_STATUS']._serialized_end=230
-  _globals['_DEVICEINFO']._serialized_start=232
-  _globals['_DEVICEINFO']._serialized_end=299
-  _globals['_COMMAND']._serialized_start=302
-  _globals['_COMMAND']._serialized_end=442
+  _globals['_STATUS']._serialized_end=257
+  _globals['_DEVICEINFO']._serialized_start=259
+  _globals['_DEVICEINFO']._serialized_end=326
+  _globals['_COMMAND']._serialized_start=329
+  _globals['_COMMAND']._serialized_end=469
 # @@protoc_insertion_point(module_scope)

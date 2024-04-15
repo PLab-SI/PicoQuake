@@ -26,6 +26,7 @@ typedef struct _Status {
     uint8_t state;
     float temperature;
     uint32_t missed_samples;
+    uint8_t error_code;
 } Status;
 
 /* id = 0x03; */
@@ -50,11 +51,11 @@ extern "C" {
 
 /* Initializer values for message structs */
 #define IMUData_init_default                     {0, 0, 0, 0, 0, 0, 0}
-#define Status_init_default                      {0, 0, 0}
+#define Status_init_default                      {0, 0, 0, 0}
 #define DeviceInfo_init_default                  {{0}, {0}}
 #define Command_init_default                     {0, 0, 0, 0, 0}
 #define IMUData_init_zero                        {0, 0, 0, 0, 0, 0, 0}
-#define Status_init_zero                         {0, 0, 0}
+#define Status_init_zero                         {0, 0, 0, 0}
 #define DeviceInfo_init_zero                     {{0}, {0}}
 #define Command_init_zero                        {0, 0, 0, 0, 0}
 
@@ -69,6 +70,7 @@ extern "C" {
 #define Status_state_tag                         1
 #define Status_temperature_tag                   2
 #define Status_missed_samples_tag                3
+#define Status_error_code_tag                    4
 #define DeviceInfo_unique_id_tag                 1
 #define DeviceInfo_firmware_tag                  2
 #define Command_state_tag                        1
@@ -92,7 +94,8 @@ X(a, STATIC,   SINGULAR, FLOAT,    gyro_z,            7)
 #define Status_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   state,             1) \
 X(a, STATIC,   SINGULAR, FLOAT,    temperature,       2) \
-X(a, STATIC,   SINGULAR, UINT32,   missed_samples,    3)
+X(a, STATIC,   SINGULAR, UINT32,   missed_samples,    3) \
+X(a, STATIC,   SINGULAR, UINT32,   error_code,        4)
 #define Status_CALLBACK NULL
 #define Status_DEFAULT NULL
 
@@ -127,7 +130,7 @@ extern const pb_msgdesc_t Command_msg;
 #define DeviceInfo_size                          21
 #define IMUData_size                             41
 #define MESSAGES_PB_H_MAX_SIZE                   IMUData_size
-#define Status_size                              14
+#define Status_size                              17
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -17,6 +17,7 @@ message Status {
   uint32 state = 1 [(nanopb).int_size = IS_8];
   float temperature = 2;
   uint32 missed_samples = 3;
+  uint32 error_code = 4 [(nanopb).int_size = IS_8];;
 }
 
 // id = 0x03;
