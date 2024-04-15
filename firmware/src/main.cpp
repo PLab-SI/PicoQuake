@@ -13,8 +13,11 @@
 #include "msg/messages.pb.h"
 #include "cobs.h"
 
+// LED on when SPI transfer ongoing or LED on when state sampling
+// #define LED_ON_SPI_TRANSFER_DEBUG
+
 // Config
-static constexpr uint16_t kSampleQueueSize = 64;
+static constexpr uint16_t kSampleQueueSize = 128;
 
 //PINS
 //ICM42688P connections
@@ -85,8 +88,9 @@ Error global_error = Error::NO_ERROR;
 
 
 void __time_critical_func(DataReadyInterrupt)(){
-  //todo
+  #ifdef LED_ON_SPI_TRANSFER_DEBUG
   digitalWrite(usr_led, HIGH);
+  #endif
   imu_all_data = icm.ReadAll();
   //save temperature for status packet
   // TODO: temp is not measured when not sampling, status msg will be wrong
@@ -96,7 +100,9 @@ void __time_critical_func(DataReadyInterrupt)(){
     // TODO: missing samples if data rate = 4k
     buff_full_sample_missed_count++;
   }
+  #ifdef LED_ON_SPI_TRANSFER_DEBUG
   digitalWrite(usr_led, LOW);
+  #endif
 }
 
 ICM42688P::OutputDataRate IdxToRate(uint8_t idx){
@@ -202,6 +208,10 @@ void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale acc
   delay(10);
   icm.SetGyroModeLn();
   delay(10);
+  //reset missed samples counter
+  buff_full_sample_missed_count = 0;
+  //attach interrupt on data ready
+  attachInterrupt(int1, DataReadyInterrupt, RISING);
   global_state = State::SAMPLING;
 }
 
@@ -209,23 +219,25 @@ void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale acc
 void StopSampling(){
   icm.SetAccelModeOff();
   icm.SetGyroModeOff();
+  // stop data ready interrupt
+  detachInterrupt(int1);
+  
   global_state = State::IDLE;
 }
 
 void HandleCommand(Command cmd){
-  //todo
   // id = 0x04;
-// message Command {
-// uint32 state = 1 [(nanopb).int_size = IS_8];
-// uint32 filter_config = 2 [(nanopb).int_size = IS_8];
-// uint32 data_rate = 3 [(nanopb).int_size = IS_8];
-// uint32 acc_range = 4 [(nanopb).int_size = IS_8];
-// uint32 gyro_range = 5 [(nanopb).int_size = IS_8];
+  // message Command {
+  // uint32 state = 1 [(nanopb).int_size = IS_8];
+  // uint32 filter_config = 2 [(nanopb).int_size = IS_8];
+  // uint32 data_rate = 3 [(nanopb).int_size = IS_8];
+  // uint32 acc_range = 4 [(nanopb).int_size = IS_8];
+  // uint32 gyro_range = 5 [(nanopb).int_size = IS_8];
 
-// class State(Enum):
-//     IDLE = 0
-//     SAMPLING = 1
-//     ERROR = 2
+  // class State(Enum):
+  //     IDLE = 0
+  //     SAMPLING = 1
+  //     ERROR = 2
 
   switch(cmd.state){
     case State::IDLE:
@@ -242,11 +254,17 @@ void HandleCommand(Command cmd){
 }
 
 void SendStatus(){
-  //todo
-  pb_status_data.temperature = last_measured_temp;
+  // if sampling, use last measured temp, else read temperature from icm
+  if(global_state == State::SAMPLING){
+    pb_status_data.temperature = last_measured_temp;
+  }
+  else{
+    ICM42688PAllData data = icm.ReadAll();
+    pb_status_data.temperature = imu_all_data.temp;
+  }
+  
   pb_status_data.state = global_state;
   pb_status_data.error_code = global_error;
-  // TODO: missed is not reset when starting new sampling
   pb_status_data.missed_samples = buff_full_sample_missed_count;
   
   // nanopb
@@ -434,7 +452,7 @@ void setup() {
   // StartSampling(ICM42688P::OutputDataRate::RATE_4K, ICM42688P::AccelFullScale::RANGE_16G, ICM42688P::GyroFullScale::RANGE_2000DPS, filter_config::f_126hz);
 
   //setup interrupt on INT1 pin
-  attachInterrupt(int1, DataReadyInterrupt, RISING);
+  // attachInterrupt(int1, DataReadyInterrupt, RISING);
 
   digitalWrite(usr_led, HIGH);
   delay(100);
@@ -450,6 +468,19 @@ void loop() {
     SendStatus();
     last_status_send_time = millis();
   }
+
+  // turn on LED when State::SAMPLING unless debug LED mode defined (on while SPI transfer)
+  #ifndef LED_ON_SPI_TRANSFER_DEBUG
+  static State last_state = State::IDLE;
+  if(global_state == State::SAMPLING && last_state == State::IDLE){
+    last_state = State::SAMPLING;
+    digitalWrite(usr_led, HIGH);
+  }
+  else if(global_state == State::IDLE && last_state == State::SAMPLING){
+    last_state = State::IDLE;
+    digitalWrite(usr_led, LOW);
+  }
+  #endif
 }
 
 void setup1() {
