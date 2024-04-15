@@ -89,9 +89,11 @@ void __time_critical_func(DataReadyInterrupt)(){
   digitalWrite(usr_led, HIGH);
   imu_all_data = icm.ReadAll();
   //save temperature for status packet
+  // TODO: temp is not measured when not sampling, status msg will be wrong
   last_measured_temp = imu_all_data.temp;
   if(xQueueSendFromISR(raw_data_q, &imu_all_data, NULL) != pdTRUE){
     // queue send error - queue full!
+    // TODO: missing samples if data rate = 4k
     buff_full_sample_missed_count++;
   }
   digitalWrite(usr_led, LOW);
@@ -200,12 +202,14 @@ void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale acc
   delay(10);
   icm.SetGyroModeLn();
   delay(10);
+  global_state = State::SAMPLING;
 }
 
 // stop sampling
 void StopSampling(){
   icm.SetAccelModeOff();
   icm.SetGyroModeOff();
+  global_state = State::IDLE;
 }
 
 void HandleCommand(Command cmd){
@@ -242,6 +246,7 @@ void SendStatus(){
   pb_status_data.temperature = last_measured_temp;
   pb_status_data.state = global_state;
   pb_status_data.error_code = global_error;
+  // TODO: missed is not reset when starting new sampling
   pb_status_data.missed_samples = buff_full_sample_missed_count;
   
   // nanopb
