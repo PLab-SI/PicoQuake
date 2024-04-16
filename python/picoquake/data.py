@@ -18,3 +18,25 @@ class IMUData:
                 f"g_x = {self.gyro_x:+.2f}, "
                 f"g_y = {self.gyro_y:+.2f}, "
                 f"g_z = {self.gyro_z:+.2f})")
+
+@dataclass
+class Status:
+    state: int
+    temperature: float
+    missed_samples: int
+    error_code: int
+
+    def __repr__(self) -> str:
+        return (f"Status(state = {self.state}, "
+                f"temp = {self.temperature:+.2f}, "
+                f"missed = {self.missed_samples}, "
+                f"error = {self.error_code})")
+    
+@dataclass
+class DeviceInfo:
+    unique_id: bytes
+    firmware: bytes
+
+    def __repr__(self) -> str:
+        return (f"DeviceInfo(device_id = {self.unique_id.hex(sep=':').upper()}, "
+                f"firmware = {self.firmware.decode('utf-8')})")

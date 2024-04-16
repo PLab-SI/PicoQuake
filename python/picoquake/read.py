@@ -28,6 +28,7 @@ class PacketID(Enum):
 
 def decode_packet(packet: bytes):
     packet_id = PacketID(packet[0])
+    print(f"Packet ID: {packet_id}")
     decoded = cobs.decode(packet[1:])
     if packet_id == PacketID.IMU_DATA:
         msg = messages_pb2.IMUData.FromString(decoded)

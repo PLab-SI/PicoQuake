@@ -7,6 +7,8 @@ from queue import Empty, Full, Queue
 from time import sleep, time
 from threading import Thread, Event
 from typing import List
+from google.protobuf.json_format import MessageToDict
+
 
 from cobs import cobs
 
@@ -21,6 +23,11 @@ class State(Enum):
     SAMPLING = 1
     ERROR = 2
 
+class CommandID(Enum):
+    HANDSHAKE = 0
+    START_SAMPLING = 1
+    STOP_SAMPLING = 2
+
 class PacketID(Enum):
     IMU_DATA = 1
     STATUS = 2
@@ -30,6 +37,8 @@ class PacketID(Enum):
 class PicoQuake:
     def __init__(self, port: str):
         self._port = port
+
+        self.device_info: DeviceInfo | None = None
 
         self._config = Config(DataRate.hz_100, Filter.hz_42, AccRange.g_2, GyroRange.dps_250)
         self._continuos_mode = False
@@ -50,6 +59,9 @@ class PicoQuake:
         self._serial_thread.start()
         self._handler_thread.start()
 
+        self._handshake()
+        print(f"Handshake: {self.device_info}")
+
     def __del__(self):
         self._stop()
 
@@ -65,9 +77,9 @@ class PicoQuake:
         if not self._continuos_mode:
             if seconds == 0 and n_samples == 0:
                 raise ValueError("Either seconds or n_samples must be specified,"
-                                 "or use start_continuos() before instead")
+                                 "or use start_continuos() before measure()")
             if seconds > 0:
-                n_samples = int(seconds * self._config.data_rate.value)
+                n_samples = int(seconds * self._config.data_rate.param_value)
 
             self._measure_n_samples = n_samples
             self._start_sampling()
@@ -93,27 +105,37 @@ class PicoQuake:
         self._stop_sampling()
         pass
 
+    def _handshake(self, timeout: float = 1.0):
+        self._send_command(CommandID.HANDSHAKE)
+        start_time = time()
+        while self.device_info is None:
+            sleep(0.001)
+            if time() - start_time > timeout:
+                self._stop()
+                raise Exception("Handshake timeout")
+
     def _start_sampling(self):
         self._sample_list = []
         self._last_sample = None
-        self._send_command(State.SAMPLING, self._config)
+        self._send_command(CommandID.START_SAMPLING, self._config)
         self._is_sampling = True
 
     def _stop_sampling(self):
-        self._send_command(State.IDLE, self._config)
+        self._send_command(CommandID.STOP_SAMPLING, self._config) 
         self._is_sampling = False
 
-    def _send_command(self, state: State, config: Config):
+    def _send_command(self, cmd_id: CommandID, config: Config | None = None):
         msg = messages_pb2.Command()
-        msg.state = state.value
-        msg.filter_config = config.filter.value
-        msg.data_rate = config.data_rate.value
-        msg.acc_range = config.acc_range.value
-        msg.gyro_range = config.gyro_range.value
+        msg.id = cmd_id.value
+        if config is not None:
+            msg.filter_config = config.filter.index
+            msg.data_rate = config.data_rate.index
+            msg.acc_range = config.acc_range.index
+            msg.gyro_range = config.gyro_range.index
         packet = cobs.encode(msg.SerializeToString())
         packet = bytes([0x00]) +  bytes([PacketID.COMMAND.value]) + packet + bytes([0x00])
-        # print(packet)
         self._out_packet_queue.put_nowait(packet)
+        print(f"Command sent: {cmd_id}")
 
     def _stop(self):
         self._stop_sampling()
@@ -139,11 +161,17 @@ class PicoQuake:
                         self._sample_list.append(imu_data)
                         if len(self._sample_list) >= self._measure_n_samples:
                             self._stop_sampling()
+                            # TODO: if sampling doesn't stop it sends command every time
                 elif isinstance(msg, messages_pb2.Status):
+                    status = Status(msg.state, msg.temperature, msg.missed_samples, msg.error_code)
+                    print(status)
                     self._last_status_time = time()
-                    if msg.state == State.ERROR.value:
+                    if status.error_code == State.ERROR.value:
                         self._stop()
                         raise Exception("Device in error state")
+                elif isinstance(msg, messages_pb2.DeviceInfo):
+                    self.device_info = DeviceInfo(msg.unique_id, msg.firmware)
+                    print("dev info rec")
 
             # # check device status
             # if time() - self._last_status_time > STATUS_TIMEOUT:

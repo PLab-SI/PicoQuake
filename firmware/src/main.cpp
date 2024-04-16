@@ -13,6 +13,8 @@
 #include "msg/messages.pb.h"
 #include "cobs.h"
 
+static constexpr char FIRMWARE_VERSION[] =  "0.1.0";
+
 // LED on when SPI transfer ongoing or LED on when state sampling
 // #define LED_ON_SPI_TRANSFER_DEBUG
 
@@ -50,6 +52,12 @@ enum State {
   ERROR = 2
 };
 
+enum CommandID {
+  HANDSHAKE = 0,
+  START_SAMPLING = 1,
+  STOP_SAMPLING = 2
+};
+
 enum Error{
   NO_ERROR = 0,
   SENSOR_COMMS_ERROR = 1,
@@ -85,6 +93,8 @@ volatile float last_measured_temp = 0.0;
 State global_state = State::IDLE;
 Error global_error = Error::NO_ERROR;
 
+bool handshake_complete = false;
+uint8_t flash_unique_id[8];
 
 
 void __time_critical_func(DataReadyInterrupt)(){
@@ -132,7 +142,7 @@ ICM42688P::OutputDataRate IdxToRate(uint8_t idx){
     case 11:
       return ICM42688P::OutputDataRate::RATE_32K;
     default:
-      Serial.println("Invalid rate idx");
+      Serial1.println("Invalid rate idx");
       return ICM42688P::OutputDataRate::RATE_12_5; //defaults to lowest if invalid
   }
 }
@@ -148,7 +158,7 @@ ICM42688P::AccelFullScale IdxToAccelRange(uint8_t idx){
     case 3:
       return ICM42688P::AccelFullScale::RANGE_16G;
     default:
-      Serial.println("Invalid accel range idx");
+      Serial1.println("Invalid accel range idx");
       return ICM42688P::AccelFullScale::RANGE_16G; //defaults to highest if invalid
   }
 }
@@ -172,7 +182,7 @@ ICM42688P::GyroFullScale IdxToGyroRange(uint8_t idx){
     case 7:
       return ICM42688P::GyroFullScale::RANGE_2000DPS;
     default:
-      Serial.println("Invalid gyro range idx");
+      Serial1.println("Invalid gyro range idx");
       return ICM42688P::GyroFullScale::RANGE_2000DPS; //defaults to highest if invalid
   }
 }
@@ -186,7 +196,7 @@ void SetupICM(){
   icm.setClockSourceExtInt2();
   delay(100);
   
-  // setup data ready interuupt
+  // setup data ready interrupt
   icm.SetIntPulsesShort();
   icm.IntAsyncReset();
   icm.EnableDataReadyInt1();
@@ -225,6 +235,28 @@ void StopSampling(){
   global_state = State::IDLE;
 }
 
+void SendHandshake() {
+  DeviceInfo pb_device_info = DeviceInfo_init_zero;
+  strncpy((char*)pb_device_info.unique_id, (char*)flash_unique_id, sizeof(pb_device_info.unique_id));
+  strncpy((char*)pb_device_info.firmware, FIRMWARE_VERSION, sizeof(pb_device_info.firmware) - 1);
+  pb_device_info.firmware[sizeof(FIRMWARE_VERSION)] = '\0';
+  uint8_t pb_buffer[DeviceInfo_size];
+  pb_ostream_t stream = pb_ostream_from_buffer(pb_buffer, sizeof(pb_buffer));
+  pb_encode(&stream, DeviceInfo_fields, &pb_device_info);
+  size_t pb_size = stream.bytes_written;
+
+  // COBS
+  uint8_t out_buffer[DeviceInfo_size + 4];
+  cobs_encode_result cobs_result = cobs_encode(out_buffer + 2, sizeof(out_buffer) - 3, pb_buffer, pb_size);
+  size_t out_packet_len = cobs_result.out_len + 3;
+  out_buffer[0] = 0x00; //start byte
+  out_buffer[1] = device_info_id; //id byte
+  out_buffer[out_packet_len - 1] = 0x00; //end byte
+  Serial.write(out_buffer, out_packet_len);
+  handshake_complete = true;
+  Serial1.println("Handshake sent");
+}
+
 void HandleCommand(Command cmd){
   // id = 0x04;
   // message Command {
@@ -239,12 +271,15 @@ void HandleCommand(Command cmd){
   //     SAMPLING = 1
   //     ERROR = 2
 
-  switch(cmd.state){
-    case State::IDLE:
+  switch(cmd.id){
+    case CommandID::STOP_SAMPLING:
       StopSampling();
       break;
-    case State::SAMPLING:
+    case CommandID::START_SAMPLING:
       StartSampling(IdxToRate(cmd.data_rate), IdxToAccelRange(cmd.acc_range), IdxToGyroRange(cmd.gyro_range), filter_configs[cmd.filter_config]);
+      break;
+    case CommandID::HANDSHAKE:
+      SendHandshake();
       break;
     default:
       break;
@@ -404,6 +439,8 @@ void ParseIncoming() {
 }
 
 void setup() {
+  // TODO: disable interrupts before this
+  flash_get_unique_id(flash_unique_id);
   // set_sys_clock_khz(270000, true);
 
   raw_data_q = xQueueCreate(kSampleQueueSize, sizeof(ICM42688PAllData));
@@ -412,20 +449,18 @@ void setup() {
   pinMode(int1, INPUT);
   pinMode(usr_led, OUTPUT);
   
-
-
   delay(3000);
-  Serial.begin(115200);
-  Serial.println("PLab vibration probe boot ok!");
-  // uint8_t unique_id[10];
-  // flash_get_unique_id(unique_id);
-  // //print uid
-  // Serial.print("UID: ");
-  // for(int i = 0; i < 9; i++){
-  //   Serial.print(unique_id[i], HEX);
-  // }
-  // Serial.println();
-  // delay(3000);
+  Serial.begin();
+  Serial1.begin(115200);
+  Serial1.println("PicoQuake boot ok!");
+  
+  Serial1.println("ID read OK");
+  //print uid
+  Serial1.print("UID: ");
+  for(int i = 0; i < 9; i++){
+    Serial1.print(flash_unique_id[i], HEX);
+  }
+  Serial1.println();
 
   SPI.setRX(spi_miso);
   SPI.setTX(spi_mosi);
@@ -464,9 +499,11 @@ void setup() {
 void loop() {
   static uint32_t last_status_send_time = 0;
   ParseIncoming();
-  if(millis() - last_status_send_time > status_send_interval_ms){
-    SendStatus();
-    last_status_send_time = millis();
+  if (true) {
+    if(millis() - last_status_send_time > status_send_interval_ms){
+      SendStatus();
+      last_status_send_time = millis();
+    }
   }
 
   // turn on LED when State::SAMPLING unless debug LED mode defined (on while SPI transfer)

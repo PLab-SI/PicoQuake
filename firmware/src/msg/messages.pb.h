@@ -37,7 +37,7 @@ typedef struct _DeviceInfo {
 
 /* id = 0x04; */
 typedef struct _Command {
-    uint8_t state;
+    uint8_t id;
     uint8_t filter_config;
     uint8_t data_rate;
     uint8_t acc_range;
@@ -73,7 +73,7 @@ extern "C" {
 #define Status_error_code_tag                    4
 #define DeviceInfo_unique_id_tag                 1
 #define DeviceInfo_firmware_tag                  2
-#define Command_state_tag                        1
+#define Command_id_tag                           1
 #define Command_filter_config_tag                2
 #define Command_data_rate_tag                    3
 #define Command_acc_range_tag                    4
@@ -106,7 +106,7 @@ X(a, STATIC,   SINGULAR, FIXED_LENGTH_BYTES, firmware,          2)
 #define DeviceInfo_DEFAULT NULL
 
 #define Command_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   state,             1) \
+X(a, STATIC,   SINGULAR, UINT32,   id,                1) \
 X(a, STATIC,   SINGULAR, UINT32,   filter_config,     2) \
 X(a, STATIC,   SINGULAR, UINT32,   data_rate,         3) \
 X(a, STATIC,   SINGULAR, UINT32,   acc_range,         4) \

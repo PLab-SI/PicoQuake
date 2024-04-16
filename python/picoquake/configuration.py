@@ -1,6 +1,8 @@
 from enum import Enum
 from dataclasses import dataclass
+from typing import TypeVar, Type
 
+T = TypeVar('T', bound='ConfigEnum')
 
 class ConfigEnum(Enum):
 
@@ -9,36 +11,46 @@ class ConfigEnum(Enum):
             raise ValueError(f"Member must have 2 elements: {args}")
         if not isinstance(args[0], int):
             raise ValueError(f"First element must be an integer: {args}")
-        if not isinstance(args[1], (int, float, str)):
-            raise ValueError(f"Second element must be an integer, float or string: {args}")
+        if not isinstance(args[1], (int, float)):
+            raise ValueError(f"Second element must be an integer or float {args}")
         obj = object.__new__(cls)
         obj._value_ = args
         return obj
 
     @classmethod
-    def from_index(cls, index: int) -> 'ConfigEnum':
+    def from_index(cls: Type[T], index: int) -> T:
         for member in cls:
             if member.value[0] == index:
                 return member
         raise ValueError(f"Invalid index: {index}")
 
     @classmethod
-    def from_param_value(cls, value: float | int | str, tolerance: float = 1e-5) -> 'ConfigEnum':
+    def from_param_value(cls: Type[T], value: float | int, tolerance: float = 1e-5) -> T:
         for member in cls:
             if isinstance(value, float):
                 if abs(member.value[1] - value) < tolerance:
                     return member
-            elif isinstance(value, (str, int)):
+            elif isinstance(value, int):
                 if member.value[1] == value:
                     return member
         raise ValueError(f"Invalid value: {value}")
+    
+    @classmethod
+    def find_closest(cls: Type[T], value: float | int) -> T:
+        closest_diff = float('inf')
+        for member in cls:
+            diff = abs(member.value[1] - value)
+            if diff < closest_diff:
+                closest = member
+                closest_diff = diff
+        return closest
     
     @property
     def index(self) -> int:
         return self.value[0]
     
     @property
-    def param_value(self) ->  float | int | str:
+    def param_value(self) ->  float | int:
         return self.value[1]
 
 
