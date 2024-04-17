@@ -13,6 +13,15 @@
 #include "msg/messages.pb.h"
 #include "cobs.h"
 
+#define DEBUG
+
+#ifdef DEBUG
+#define DEBUG_PRINTF(...) Serial1.printf(__VA_ARGS__)
+#else
+#define DEBUG_PRINTF(...) // Defines DEBUG_PRINT as an empty macro when DEBUG is not defined
+#endif
+
+
 static constexpr char FIRMWARE_VERSION[] =  "0.1.0";
 
 // LED on when SPI transfer ongoing or LED on when state sampling
@@ -142,7 +151,7 @@ ICM42688P::OutputDataRate IdxToRate(uint8_t idx){
     case 11:
       return ICM42688P::OutputDataRate::RATE_32K;
     default:
-      Serial1.println("Invalid rate idx");
+      DEBUG_PRINTF("Invalid rate idx\r\n");
       return ICM42688P::OutputDataRate::RATE_12_5; //defaults to lowest if invalid
   }
 }
@@ -158,7 +167,7 @@ ICM42688P::AccelFullScale IdxToAccelRange(uint8_t idx){
     case 3:
       return ICM42688P::AccelFullScale::RANGE_16G;
     default:
-      Serial1.println("Invalid accel range idx");
+      DEBUG_PRINTF("Invalid accel range idx");
       return ICM42688P::AccelFullScale::RANGE_16G; //defaults to highest if invalid
   }
 }
@@ -182,7 +191,7 @@ ICM42688P::GyroFullScale IdxToGyroRange(uint8_t idx){
     case 7:
       return ICM42688P::GyroFullScale::RANGE_2000DPS;
     default:
-      Serial1.println("Invalid gyro range idx");
+      DEBUG_PRINTF("Invalid gyro range idx\r\n");
       return ICM42688P::GyroFullScale::RANGE_2000DPS; //defaults to highest if invalid
   }
 }
@@ -254,7 +263,7 @@ void SendHandshake() {
   out_buffer[out_packet_len - 1] = 0x00; //end byte
   Serial.write(out_buffer, out_packet_len);
   handshake_complete = true;
-  Serial1.println("Handshake sent");
+  DEBUG_PRINTF("Handshake sent\r\n");
 }
 
 void HandleCommand(Command cmd){
@@ -439,6 +448,9 @@ void ParseIncoming() {
 }
 
 void setup() {
+  #ifdef DEBUG
+  icm.RegisterDebugSerial(&Serial1);
+  #endif
   // TODO: disable interrupts before this
   flash_get_unique_id(flash_unique_id);
   // set_sys_clock_khz(270000, true);
@@ -451,16 +463,22 @@ void setup() {
   
   delay(3000);
   Serial.begin();
+  #ifdef DEBUG
   Serial1.begin(115200);
-  Serial1.println("PicoQuake boot ok!");
+  #endif
+  DEBUG_PRINTF("PicoQuake boot ok!");
   
-  Serial1.println("ID read OK");
+  DEBUG_PRINTF("ID read OK\r\n");
+
+  //print firmware version
+  DEBUG_PRINTF("Firmware version: %s\r\n", FIRMWARE_VERSION);
+
   //print uid
   Serial1.print("UID: ");
-  for(int i = 0; i < 9; i++){
+  for(int i = 0; i < 8; i++){
     Serial1.print(flash_unique_id[i], HEX);
   }
-  Serial1.println();
+  DEBUG_PRINTF("\r\n");
 
   SPI.setRX(spi_miso);
   SPI.setTX(spi_mosi);
@@ -471,6 +489,7 @@ void setup() {
   //begin ICM42688P
   if(!icm.Begin()){
     global_error = Error::SENSOR_COMMS_ERROR;
+    DEBUG_PRINTF("ICM42688P comms error! WHOAMI wrong!\r\n");
     while(1){
       //send error status in loop, do nothing else
       digitalWrite(usr_led, HIGH);
@@ -483,6 +502,8 @@ void setup() {
   }
 
   SetupICM();
+  DEBUG_PRINTF("ICM42688P setup OK!\r\n");
+
   
   // StartSampling(ICM42688P::OutputDataRate::RATE_4K, ICM42688P::AccelFullScale::RANGE_16G, ICM42688P::GyroFullScale::RANGE_2000DPS, filter_config::f_126hz);
 
@@ -493,6 +514,7 @@ void setup() {
   delay(100);
   digitalWrite(usr_led, LOW);
   delay(500);
+  DEBUG_PRINTF("Ready!\r\n");
 
 }
 

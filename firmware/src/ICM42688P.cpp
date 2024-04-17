@@ -14,11 +14,11 @@ bool ICM42688P::Begin(){
     digitalWrite(_cs, HIGH);
     uint8_t whoami = ReadRegister(ICM42688_WHO_AM_I);
     if(whoami != WHOAMI_RETVAL){
-        Serial.println("ICM42688 not found!");
+        DEBUG_PRINTF("ICMLIB: ICM not found!\r\n");
         return false;
     }
     else{
-        Serial.println("ICM42688 got correct whoami.");
+        DEBUG_PRINTF("ICMLIB: got correct whoami.\r\n");
         // soft reboot ICM to ensure correct state
         SoftReset();
         return true;
@@ -81,7 +81,7 @@ bool ICM42688P::WriteRegisterSecure(uint8_t reg, uint8_t data) {
 // always return bank to 0!
 void ICM42688P::SelectBank(uint8_t bank){
     if(bank > 3){
-        Serial.println("Invalid bank selection!");
+        DEBUG_PRINTF("ICMLIB: Invalid bank selection!\r\n");
         return;
     }
     WriteRegister(ICM42688_REG_BANK_SEL, bank);
@@ -467,6 +467,19 @@ void ICM42688P::SetGyroFilterBandwidth(const FilterConfig& bw){
     //return to bank 0
     SelectBank(0);
 
+}
+
+void ICM42688P::RegisterDebugSerial(SerialUART *debugSerial){
+    _debugSerial = debugSerial;
+}
+
+void ICM42688P::DEBUG_PRINTF(const char* fmt, ...){
+    if(_debugSerial != nullptr){
+        va_list args;
+        va_start(args, fmt);
+        _debugSerial->printf(fmt, args);
+        va_end(args);
+    }
 }
 
 

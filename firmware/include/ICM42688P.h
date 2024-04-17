@@ -5,6 +5,7 @@
 #include <SPI.h>
 #include "ICM42688P_filter_config.h"
 
+
 /* ICM42688 registers
 https://invensense.tdk.com/wp-content/uploads/2020/04/ds-000347_icm-42688-p-datasheet.pdf
 */
@@ -203,6 +204,9 @@ class ICM42688P{
         void SelectBank(uint8_t bank);
         uint8_t GetBank();
 
+        //optionally register a debug printf-like function (e.g. Serial.printf())
+        void RegisterDebugSerial(SerialUART *debugSerial);
+
 
         bool Begin();
 
@@ -237,6 +241,8 @@ class ICM42688P{
         
 
     private:
+        SerialUART *_debugSerial = nullptr;
+        void DEBUG_PRINTF(const char* fmt, ...);
         SPIClass *_spi;
         SPISettings _spiSettings;
         uint8_t _cs;

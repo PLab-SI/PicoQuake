@@ -23,7 +23,7 @@ def measure_to_csv(port, seconds: float,
     # TODO: write samples to csv file
     
 if __name__ == '__main__':
-    device = PicoQuake("/dev/cu.usbmodem212101")
+    device = PicoQuake("/dev/cu.usbmodem101")
     device.configure(DataRate.hz_2000, Filter.hz_536, AccRange.g_2, GyroRange.dps_250)
 
     # device.start_continuos()
