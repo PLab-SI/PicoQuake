@@ -21,6 +21,16 @@ typedef struct _IMUData {
     float gyro_z;
 } IMUData;
 
+typedef struct _IMUDataSmol {
+    uint64_t count;
+    uint16_t acc_x;
+    uint16_t acc_y;
+    uint16_t acc_z;
+    uint16_t gyro_x;
+    uint16_t gyro_y;
+    uint16_t gyro_z;
+} IMUDataSmol;
+
 /* id = 0x02; */
 typedef struct _Status {
     uint8_t state;
@@ -51,10 +61,12 @@ extern "C" {
 
 /* Initializer values for message structs */
 #define IMUData_init_default                     {0, 0, 0, 0, 0, 0, 0}
+#define IMUDataSmol_init_default                 {0, 0, 0, 0, 0, 0, 0}
 #define Status_init_default                      {0, 0, 0, 0}
 #define DeviceInfo_init_default                  {{0}, {0}}
 #define Command_init_default                     {0, 0, 0, 0, 0}
 #define IMUData_init_zero                        {0, 0, 0, 0, 0, 0, 0}
+#define IMUDataSmol_init_zero                    {0, 0, 0, 0, 0, 0, 0}
 #define Status_init_zero                         {0, 0, 0, 0}
 #define DeviceInfo_init_zero                     {{0}, {0}}
 #define Command_init_zero                        {0, 0, 0, 0, 0}
@@ -67,6 +79,13 @@ extern "C" {
 #define IMUData_gyro_x_tag                       5
 #define IMUData_gyro_y_tag                       6
 #define IMUData_gyro_z_tag                       7
+#define IMUDataSmol_count_tag                    1
+#define IMUDataSmol_acc_x_tag                    2
+#define IMUDataSmol_acc_y_tag                    3
+#define IMUDataSmol_acc_z_tag                    4
+#define IMUDataSmol_gyro_x_tag                   5
+#define IMUDataSmol_gyro_y_tag                   6
+#define IMUDataSmol_gyro_z_tag                   7
 #define Status_state_tag                         1
 #define Status_temperature_tag                   2
 #define Status_missed_samples_tag                3
@@ -90,6 +109,17 @@ X(a, STATIC,   SINGULAR, FLOAT,    gyro_y,            6) \
 X(a, STATIC,   SINGULAR, FLOAT,    gyro_z,            7)
 #define IMUData_CALLBACK NULL
 #define IMUData_DEFAULT NULL
+
+#define IMUDataSmol_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT64,   count,             1) \
+X(a, STATIC,   SINGULAR, UINT32,   acc_x,             2) \
+X(a, STATIC,   SINGULAR, UINT32,   acc_y,             3) \
+X(a, STATIC,   SINGULAR, UINT32,   acc_z,             4) \
+X(a, STATIC,   SINGULAR, UINT32,   gyro_x,            5) \
+X(a, STATIC,   SINGULAR, UINT32,   gyro_y,            6) \
+X(a, STATIC,   SINGULAR, UINT32,   gyro_z,            7)
+#define IMUDataSmol_CALLBACK NULL
+#define IMUDataSmol_DEFAULT NULL
 
 #define Status_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   state,             1) \
@@ -115,12 +145,14 @@ X(a, STATIC,   SINGULAR, UINT32,   gyro_range,        5)
 #define Command_DEFAULT NULL
 
 extern const pb_msgdesc_t IMUData_msg;
+extern const pb_msgdesc_t IMUDataSmol_msg;
 extern const pb_msgdesc_t Status_msg;
 extern const pb_msgdesc_t DeviceInfo_msg;
 extern const pb_msgdesc_t Command_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define IMUData_fields &IMUData_msg
+#define IMUDataSmol_fields &IMUDataSmol_msg
 #define Status_fields &Status_msg
 #define DeviceInfo_fields &DeviceInfo_msg
 #define Command_fields &Command_msg
@@ -128,6 +160,7 @@ extern const pb_msgdesc_t Command_msg;
 /* Maximum encoded size of messages (where known) */
 #define Command_size                             15
 #define DeviceInfo_size                          21
+#define IMUDataSmol_size                         35
 #define IMUData_size                             41
 #define MESSAGES_PB_H_MAX_SIZE                   IMUData_size
 #define Status_size                              17

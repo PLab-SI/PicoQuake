@@ -12,6 +12,16 @@ message IMUData {
   float gyro_z = 7;
 }
 
+message IMUDataSmol {
+  uint64 count  = 1;
+  uint32 acc_x  = 2 [(nanopb).int_size = IS_16];
+  uint32 acc_y  = 3 [(nanopb).int_size = IS_16];
+  uint32 acc_z  = 4 [(nanopb).int_size = IS_16];
+  uint32 gyro_x = 5 [(nanopb).int_size = IS_16];
+  uint32 gyro_y = 6 [(nanopb).int_size = IS_16];
+  uint32 gyro_z = 7 [(nanopb).int_size = IS_16];
+}
+
 // id = 0x02;
 message Status {
   uint32 state = 1 [(nanopb).int_size = IS_8];
