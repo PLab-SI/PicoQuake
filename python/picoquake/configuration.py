@@ -1,3 +1,4 @@
+from calendar import c
 from enum import Enum
 from dataclasses import dataclass
 from typing import TypeVar, Type
@@ -37,6 +38,9 @@ class ConfigEnum(Enum):
     
     @classmethod
     def find_closest(cls: Type[T], value: float | int) -> T:
+        if not list(cls):
+                raise ValueError("No members in the enum")
+        closest = next(iter(cls))
         closest_diff = float('inf')
         for member in cls:
             diff = abs(member.value[1] - value)
@@ -159,3 +163,7 @@ class Config:
     filter: Filter
     acc_range: AccRange
     gyro_range: GyroRange
+
+    def __str__(self):
+        return f"data_rate = {self.data_rate.param_value}, filter = {self.filter.param_value}, " \
+               f"acc_range = {self.acc_range.param_value}, gyro_range = {self.gyro_range.param_value}"
