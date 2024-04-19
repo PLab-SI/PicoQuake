@@ -21,6 +21,17 @@
 #define DEBUG_PRINTF(...) // Defines DEBUG_PRINT as an empty macro when DEBUG is not defined
 #endif
 
+typedef struct ImuSendStruct {
+    uint64_t count;
+    float acc_x;
+    float acc_y;
+    float acc_z;
+    float gyro_x;
+    float gyro_y;
+    float gyro_z;
+} ImuSendStruct;
+//
+
 
 static constexpr char FIRMWARE_VERSION[] =  "0.1.0";
 
@@ -87,7 +98,7 @@ ICM42688PAllData q_pop_data;
 IMUData pb_imu_data = IMUData_init_zero;
 pb_ostream_t nanopb_stream;
 uint8_t nanopb_buffer[IMUData_size];
-uint8_t out_buffer[IMUData_size + 4]; // start 0x00, end 0x00, cobs overhead, ID byte (right after start byte)
+uint8_t out_buffer[sizeof(ImuSendStruct) + 4]; // start 0x00, end 0x00, cobs overhead, ID byte (right after start byte)
 
 //incoming data stuff
 uint8_t incoming_buffer[64];
@@ -101,6 +112,7 @@ uint8_t out_status_buffer[Status_size + 4]; // start 0x00, end 0x00, cobs overhe
 volatile float last_measured_temp = 0.0;
 State global_state = State::IDLE;
 Error global_error = Error::NO_ERROR;
+
 
 bool handshake_complete = false;
 uint8_t flash_unique_id[8];
@@ -119,7 +131,7 @@ void __time_critical_func(DataReadyInterrupt)(){
     // TODO: missing samples if data rate = 4k
     buff_full_sample_missed_count++;
   }
-  #ifdef LED_ON_SPI_TRANSFER_DEBUG
+   #ifdef LED_ON_SPI_TRANSFER_DEBUG
   digitalWrite(usr_led, LOW);
   #endif
 }
@@ -229,9 +241,13 @@ void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale acc
   delay(10);
   //reset missed samples counter
   buff_full_sample_missed_count = 0;
+  //reset min available in queue
   //attach interrupt on data ready
   attachInterrupt(int1, DataReadyInterrupt, RISING);
   global_state = State::SAMPLING;
+  #ifndef LED_ON_SPI_TRANSFER_DEBUG
+  digitalWrite(usr_led, HIGH);
+  #endif
 }
 
 // stop sampling
@@ -240,8 +256,12 @@ void StopSampling(){
   icm.SetGyroModeOff();
   // stop data ready interrupt
   detachInterrupt(int1);
+
   
   global_state = State::IDLE;
+  #ifndef LED_ON_SPI_TRANSFER_DEBUG
+  digitalWrite(usr_led, LOW);
+  #endif
 }
 
 void SendHandshake() {
@@ -335,18 +355,21 @@ void SendStatus(){
 
 void SendIMUData() {
   if(uxQueueMessagesWaiting(raw_data_q) > 0){
+    // digitalWrite(usr_led, HIGH);
     xQueueReceive(raw_data_q, &q_pop_data, 0);
   } else {
     return;
   }
+  ImuSendStruct DataToSend;
+  DataToSend.count = sample_count++;
+  DataToSend.acc_x = q_pop_data.accel_x;
+  DataToSend.acc_y = q_pop_data.accel_y;
+  DataToSend.acc_z = q_pop_data.accel_z;
+  DataToSend.gyro_x = q_pop_data.gyro_x;
+  DataToSend.gyro_y = q_pop_data.gyro_y;
+  DataToSend.gyro_z = q_pop_data.gyro_z;
 
-  pb_imu_data.count = sample_count++;
-  pb_imu_data.acc_x = q_pop_data.accel_x;
-  pb_imu_data.acc_y = q_pop_data.accel_y;
-  pb_imu_data.acc_z = q_pop_data.accel_z;
-  pb_imu_data.gyro_x = q_pop_data.gyro_x;
-  pb_imu_data.gyro_y = q_pop_data.gyro_y;
-  pb_imu_data.gyro_z = q_pop_data.gyro_z;
+  // DEBUG_PRINTF("Accel: %f %f %f Gyro: %f %f %f\r\n", DataToSend.acc_x, DataToSend.acc_y, DataToSend.acc_z, DataToSend.gyro_x, DataToSend.gyro_y, DataToSend.gyro_z);
 
   // nanopb
   nanopb_stream = pb_ostream_from_buffer(nanopb_buffer, sizeof(nanopb_buffer));
@@ -356,7 +379,7 @@ void SendIMUData() {
 
   // COBS
   cobs_encode_result cobs_result = cobs_encode(out_buffer + 2, 
-      sizeof(out_buffer) - 3, nanopb_buffer, nanopb_size);
+      sizeof(out_buffer) - 3, &DataToSend, sizeof(DataToSend));
   
   size_t out_packet_len = cobs_result.out_len + 3;
       
@@ -367,6 +390,7 @@ void SendIMUData() {
 
   // Send
   Serial.write(out_buffer, out_packet_len);
+  // digitalWrite(usr_led, LOW);
 }
 
 
@@ -518,7 +542,31 @@ void setup() {
 
 }
 
+
+void setup1() {
+  // vTaskDelete(NULL);
+  delay(6000);
+}
+
+
 void loop() {
+  // // turn on LED when State::SAMPLING unless debug LED mode defined (on while SPI transfer)
+  // #ifndef LED_ON_SPI_TRANSFER_DEBUG
+  // static State last_state = State::IDLE;
+  // if(global_state == State::SAMPLING && last_state == State::IDLE){
+  //   last_state = State::SAMPLING;
+  //   digitalWrite(usr_led, HIGH);
+  // }
+  // else if(global_state == State::IDLE && last_state == State::SAMPLING){
+  //   last_state = State::IDLE;
+  //   digitalWrite(usr_led, LOW);
+  // }
+  // #endif
+}
+
+// all time consuming code is in loop1. loop1 is executed on core 1, which is free, core0 is busy with arduino stuff, USB comms, etc.
+// interrupt is also on core1 (sampling start which enables interrupt is called inside ParseIncoming - interrupts run from the core they are enabled on)
+void loop1() {
   static uint32_t last_status_send_time = 0;
   ParseIncoming();
   if (true) {
@@ -527,26 +575,6 @@ void loop() {
       last_status_send_time = millis();
     }
   }
-
-  // turn on LED when State::SAMPLING unless debug LED mode defined (on while SPI transfer)
-  #ifndef LED_ON_SPI_TRANSFER_DEBUG
-  static State last_state = State::IDLE;
-  if(global_state == State::SAMPLING && last_state == State::IDLE){
-    last_state = State::SAMPLING;
-    digitalWrite(usr_led, HIGH);
-  }
-  else if(global_state == State::IDLE && last_state == State::SAMPLING){
-    last_state = State::IDLE;
-    digitalWrite(usr_led, LOW);
-  }
-  #endif
-}
-
-void setup1() {
-  delay(6000);
-}
-
-
-void loop1() {
   SendIMUData();
+
 }

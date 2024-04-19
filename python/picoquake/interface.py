@@ -10,6 +10,7 @@ from time import sleep, time
 from threading import Thread, Event
 from typing import List
 import logging
+import struct
 
 from google.protobuf.json_format import MessageToDict
 from cobs import cobs
@@ -211,9 +212,8 @@ class PicoQuake:
             except Empty:
                 pass
             else:
-                if isinstance(msg, messages_pb2.IMUData):
-                    imu_data = IMUData(msg.count, msg.acc_x, msg.acc_y, msg.acc_z,
-                                       msg.gyro_x, msg.gyro_y, msg.gyro_z)
+                if isinstance(msg, IMUData):
+                    imu_data = msg
                     if self._continuos_mode:
                         self._last_sample = imu_data
                     else:
@@ -278,7 +278,15 @@ class PicoQuake:
             packet_id = PacketID(packet[0])
             decoded = cobs.decode(packet[1:])
             if packet_id == PacketID.IMU_DATA:
-                msg = messages_pb2.IMUData.FromString(decoded)
+                unpacked_data = struct.unpack('<Qffffff', decoded)
+                msg = IMUData(unpacked_data[0],
+                              unpacked_data[1],
+                              unpacked_data[2],
+                              unpacked_data[3],
+                              unpacked_data[4],
+                              unpacked_data[5],
+                              unpacked_data[6])
+                # msg = messages_pb2.IMUData.FromString(decoded)
             elif packet_id == PacketID.STATUS:
                 msg = messages_pb2.Status.FromString(decoded)
             elif packet_id == PacketID.DEVICE_INFO:
