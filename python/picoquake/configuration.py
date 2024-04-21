@@ -1,4 +1,3 @@
-from calendar import c
 from enum import Enum
 from dataclasses import dataclass
 from typing import TypeVar, Type
@@ -59,7 +58,7 @@ class ConfigEnum(Enum):
 
 
 class DataRate(ConfigEnum):
-    hz_12_5 = 1, 2
+    hz_12_5 = 0, 12.5
     hz_25 = 1, 25.0
     hz_50 = 2, 50.0
     hz_100 = 3, 100.0
@@ -68,9 +67,6 @@ class DataRate(ConfigEnum):
     hz_1000 = 6, 1000.0
     hz_2000 = 7, 2000.0
     hz_4000 = 8, 4000.0
-    # hz_8000 = (9, 8000.0)
-    # hz_16000 = (10, 16000.0)
-    # hz_32000 = (11, 32000.0)
 
 
 class Filter(ConfigEnum):
@@ -165,5 +161,7 @@ class Config:
     gyro_range: GyroRange
 
     def __str__(self):
-        return f"data_rate = {self.data_rate.param_value}, filter = {self.filter.param_value}, " \
-               f"acc_range = {self.acc_range.param_value}, gyro_range = {self.gyro_range.param_value}"
+        return f"data_rate = {self.data_rate.param_value} Hz, " \
+               f"filter = {self.filter.param_value} Hz, " \
+               f"acc_range = {self.acc_range.param_value} g, " \
+               f"gyro_range = {self.gyro_range.param_value} dps"

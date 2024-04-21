@@ -1,6 +1,9 @@
 from dataclasses import dataclass, field
-from enum import unique, Enum
+from enum import Enum
 from hashlib import blake2b
+from datetime import datetime
+
+from .configuration import Config
 
 
 class State(Enum):
@@ -23,7 +26,7 @@ class PacketID(Enum):
 
 
 @dataclass
-class IMUData:
+class IMUSample:
     count: int
     acc_x: float
     acc_y: float
@@ -75,3 +78,48 @@ class DeviceInfo:
         return (f"device_id = {self.unique_id.upper()}, "
                 f"short_id = {self.short_id}, "
                 f"firmware = {self.firmware}")
+
+
+@dataclass
+class AcquisitionResult:
+    samples: list[IMUSample]
+    device: DeviceInfo
+    config: Config
+    start_time: datetime
+    end_time: datetime
+    integrity: bool = field(init=False)
+    skipped_samples: int = field(init=False)
+
+    @property
+    def duration(self) -> float:
+        return self.num_samples / self.config.data_rate.param_value
+    
+    @property
+    def num_samples(self) -> int:
+        return len(self.samples)
+    
+    def check_integrity(self) -> int:
+        last_count = self.samples[0].count
+        skipped = 0
+        for s in self.samples:
+            diff = s.count - last_count
+            if diff > 1:
+                skipped += diff - 1
+            last_count = s.count
+        return skipped
+    
+    def normalize_count(self):
+        first = self.samples[0].count
+        for s in self.samples:
+            s.count -= first
+    
+    def __post_init__(self):
+        self.skipped_samples = self.check_integrity()
+        self.integrity = self.skipped_samples == 0
+        self.normalize_count()
+
+    def __str__(self) -> str:
+        return (f"num_samples = {self.num_samples}, " 
+                f"duration = {self.duration:.2f}s, "
+                f"integrity = {self.integrity}, "
+                f"skipped = {self.skipped_samples}")
