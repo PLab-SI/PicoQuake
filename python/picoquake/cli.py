@@ -7,10 +7,11 @@ import sys
 import os
 import platform
 
-from .interface import *
 from . import __version__
+from .interface import *
+from .plot import *
 
-def get_log_path(app_name):
+def _get_log_path(app_name):
     """
     Determines the operating system and returns the appropriate log directory path for the application.
 
@@ -38,7 +39,7 @@ def get_log_path(app_name):
     return log_path
 
 
-def acquire(args):
+def _acquire(args):
     short_id: str = args.short_id
     out: str = args.out
     seconds: float = args.seconds
@@ -90,29 +91,14 @@ def acquire(args):
         logging.error(f"Error: {e}")
         sys.exit(1)
     else:
-        write_csv(out, cast(AcquisitionResult, result))
+        cast(AcquisitionResult, result).to_csv(out)
         path = os.path.abspath(out)
         print(f"Data written to {path}")   
     finally:
         device.stop()
-    
-
-def write_csv(filename: str, result: AcquisitionResult):
-    metadata = f"# PLab PicoQuake Data\n" \
-               f"# Time: {result.start_time}, Device: {result.device.short_id.upper()} ({result.device.unique_id})\n" \
-               f"# Num. samples: {result.num_samples}, Duration: {result.duration} s\n" \
-               f"# Config: {result.config}\n" \
-               f"# Integrity: {result.integrity}, Skipped samples: {result.skipped_samples}\n"
-    with open(filename, "w") as f:
-        f.write(metadata)
-        writer = csv.writer(f)
-        writer.writerow(["count", "a_x", "a_y", "a_z", "g_x", "g_y", "g_z"])
-        for sample in result.samples:
-            writer.writerow([sample.count, sample.acc_x, sample.acc_y, sample.acc_z,
-                             sample.gyro_x, sample.gyro_y, sample.gyro_z])
 
 
-def live_display(args):
+def _live_display(args):
     short_id: str = args.short_id
     interval: float = args.interval
     if interval < 0.1:
@@ -146,8 +132,31 @@ def live_display(args):
         device.stop()
 
 
+def _plot_fft(args):
+    filename: str = args.filename
+    output: str = args.output
+    axis: str = args.axis
+    freq_min: float = args.freq_min
+    freq_max: float = args.freq_max
 
-def list_devices(args):
+    output = output if output != '.' else os.path.splitext(filename)[0] + "_fft.png"
+
+    try:
+        result = AcquisitionResult.from_csv(filename)
+    except Exception as e:
+        logging.error(f"Error loading file: {e}")
+        print(f"Error loading file: {e}")
+        sys.exit(1)
+    try:
+        plot_fft(result, output, axis, freq_min, freq_max)
+        print(f"Plot saved to {output}")
+    except Exception as e:
+        logging.error(f"Error: {e}")
+        print(f"Error: {e}")
+        sys.exit(1)
+
+
+def _list_devices(args):
     all_ports = args.all
     ports = comports()
     for p in ports:
@@ -159,7 +168,7 @@ def list_devices(args):
 
 
 def main():
-    file_logger = logging.FileHandler(os.path.join(get_log_path("picoquake"), "picoquake.log"), mode='a')
+    file_logger = logging.FileHandler(os.path.join(_get_log_path("picoquake"), "picoquake.log"), mode='a')
     file_logger.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     logging.getLogger().addHandler(file_logger)
     logging.getLogger().setLevel(logging.DEBUG)
@@ -188,19 +197,28 @@ def main():
                                 help="Overwrite is output file exists.")
     acquire_parser.add_argument("-v", "--verbose", action="store_true",
                                 help="Enable verbose logging")
-    acquire_parser.set_defaults(func=acquire)
+    acquire_parser.set_defaults(func=_acquire)
 
     # display
     live_disp_parser = subparsers.add_parser("display", help="Display live data from device.")
     live_disp_parser.add_argument("short_id", help="The 4 character ID of the device. Found on the label.")
     live_disp_parser.add_argument("-i", "--interval", type=float, default=1.0,
                                   help="Interval between samples in seconds. Range 0.1 - 10 s.")
-    live_disp_parser.set_defaults(func=live_display)
+    live_disp_parser.set_defaults(func=_live_display)
 
     # list devices
     list_devices_parser = subparsers.add_parser("list", help="List connected PicoQuake devices.")
     list_devices_parser.add_argument("-a", "--all", action="store_true", help="List all serial ports.")
-    list_devices_parser.set_defaults(func=list_devices)
+    list_devices_parser.set_defaults(func=_list_devices)
+
+    # plot fft
+    fftplot_parser = subparsers.add_parser("fftplot", help="Plot FFT of acquired data.")
+    fftplot_parser.add_argument("filename", help="The CSV file containing the acquired data.")
+    fftplot_parser.add_argument("output", help="The output file to save the plot to. '.' to save next to the data file.")
+    fftplot_parser.add_argument("-a", "--axis", default="xyz", help="Axis to plot, must be 'x', 'y', 'z', or a combination")
+    fftplot_parser.add_argument("-fmin", "--freq_min", type=float, default=5.0, help="Minimum frequency to plot.")
+    fftplot_parser.add_argument("-fmax", "--freq_max", type=float, default=100.0, help="Maximum frequency to plot.")
+    fftplot_parser.set_defaults(func=_plot_fft)
     
     args = main_parser.parse_args()
     args.func(args)

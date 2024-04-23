@@ -144,8 +144,7 @@ class PicoQuake:
             return AcquisitionResult(samples=self._sample_list[0:n_samples],
                                      device=self.device_info,
                                      config=self._config,
-                                     start_time=start_t,
-                                     end_time=stop_t)
+                                     start_time=start_t)
         else:
             if block:
                 start_time = time()

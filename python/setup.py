@@ -8,7 +8,9 @@ setup(
     install_requires=[
         'pyserial',
         'protobuf',
-        'cobs'
+        'cobs',
+        'numpy',
+        'matplotlib'
     ],
     entry_points={
         'console_scripts': [
