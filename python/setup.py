@@ -10,7 +10,8 @@ setup(
         'protobuf',
         'cobs',
         'numpy',
-        'matplotlib'
+        'matplotlib',
+        'psutil'
     ],
     entry_points={
         'console_scripts': [

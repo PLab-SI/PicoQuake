@@ -82,16 +82,20 @@ def _acquire(args):
         if not autostart:
             input("\nPress ENTER to start acquisition...\n")
         print("Acquiring...")
-        result = device.acquire(seconds=seconds)
-        print(f"Done. {result}")
+        result = cast(AcquisitionResult, device.acquire(seconds))
+        print("Done.")
+        if not result.integrity:
+            print(f"WARNING: Data compromised, {result.skipped_samples} samples skipped.")
     except KeyboardInterrupt:
         logging.info("Interrupted by user.")
+        print("Interrupted by user.")
         sys.exit(1)
     except Exception as e:
         logging.error(f"Error: {e}")
+        print(f"Error: {e}")
         sys.exit(1)
     else:
-        cast(AcquisitionResult, result).to_csv(out)
+        result.to_csv(out)
         path = os.path.abspath(out)
         print(f"Data written to {path}")   
     finally:
@@ -124,9 +128,11 @@ def _live_display(args):
             sleep(interval)
     except KeyboardInterrupt:
         logging.info("Interrupted by user.")
+        print("Interrupted by user.")
         sys.exit(0)
     except Exception as e:
         logging.error(f"Error: {e}")
+        print(f"Error: {e}")
         sys.exit(1)
     finally:
         device.stop()

@@ -9,6 +9,7 @@ from typing import List
 import logging
 import struct
 from datetime import datetime
+import psutil
 
 from cobs import cobs
 
@@ -21,7 +22,9 @@ PID = 0xA
 MANUFACTURER = "PLab"
 PRODUCT = "PicoQuake"
 
+HANDSHAKE_TIMEOUT = 5.0
 STATUS_TIMEOUT = 2.0
+USAGE_LOG_INTERVAL = 1.0
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.NOTSET)
@@ -130,6 +133,9 @@ class PicoQuake:
             if seconds > 0:
                 n_samples = int(seconds * self._config.data_rate.param_value)
 
+            process = psutil.Process()
+            process.cpu_percent()
+
             logger.info(f"Acquiring {n_samples} samples...")
             self._acquire_n_samples = n_samples
             start_t = datetime.now()
@@ -140,7 +146,8 @@ class PicoQuake:
                     break
                 sleep(0.001)
             stop_t = datetime.now()
-            logger.info("Acquisition DONE.")
+            logger.info(f"Acquisition DONE. Took: {(stop_t - start_t).total_seconds():.1f}s. " \
+                        f"Average CPU utilization (this process): {process.cpu_percent():.1f}%")
             return AcquisitionResult(samples=self._sample_list[0:n_samples],
                                      device=self.device_info,
                                      config=self._config,
@@ -175,7 +182,7 @@ class PicoQuake:
         return None
 
     @handle_exceptions
-    def _handshake(self, timeout: float = 2.0):
+    def _handshake(self, timeout: float = HANDSHAKE_TIMEOUT):
         self._send_command(CommandID.HANDSHAKE)
         start_time = time()
         while self.device_info is None:
@@ -223,7 +230,7 @@ class PicoQuake:
         while not self._stop_event.is_set():
             # process messages
             try:
-                msg = self._in_message_queue.get(timeout=0.01)
+                msg = self._in_message_queue.get(timeout=0.1)
             except Empty:
                 pass
             else:
@@ -238,7 +245,6 @@ class PicoQuake:
                                     msg.missed_samples, msg.error_code)
                     self.device_status = status
                     self._last_status_time = time()
-                    # logger.debug(f"Device status: {status}")
                     if status.state == State.ERROR.value:
                         raise DeviceError(status.error_code)
                 elif isinstance(msg, messages_pb2.DeviceInfo):
@@ -251,36 +257,38 @@ class PicoQuake:
 
     @handle_exceptions
     def _serial_worker(self):
+        last_check_time = time()
+
         logger.debug(f"Connecting on port {self._port} ...")
         try:
-            ser = Serial(self._port, timeout=0.001)
+            ser = Serial(self._port, timeout=0.1)
         except SerialException:
             raise ConnectionError(f"Could not connect to port {self._port}")
-        data = b''
-        in_buffer = b''
+        in_buffer = bytearray()
         receiving_packet = False
         while not self._stop_event.is_set():
             # receive
-            data = ser.read(1)
+            data = ser.read(1000)
             if len(data) > 0:
-                if data == bytes([0x00]):
-                    if receiving_packet:
-                        if len(in_buffer) > 0:
-                            # stop flag, end of packet
-                            try:
-                                self._in_message_queue.put_nowait(self._decode_packet(in_buffer))
-                            except Exception as e:
-                                logger.error(f"Decode error: {e}")
-                            in_buffer = b''
-                            receiving_packet = False
+                for b in data:
+                    if b == 0x00:
+                        if receiving_packet:
+                            if len(in_buffer) > 0:
+                                # stop flag, end of packet
+                                try:
+                                    self._in_message_queue.put_nowait(self._decode_packet(in_buffer))
+                                except Exception as e:
+                                    logger.error(f"Decode error: {e}")
+                                in_buffer.clear()
+                                receiving_packet = False
+                            else:
+                                # empty packet, treat as new start flag
+                                pass
                         else:
-                            # empty packet, treat as new start flag
-                            pass
-                    else:
-                        # start flag
-                        receiving_packet = True
-                elif receiving_packet:
-                    in_buffer += data
+                            # start flag
+                            receiving_packet = True
+                    elif receiving_packet:
+                        in_buffer.append(b)
             
             # send
             try:
@@ -288,6 +296,11 @@ class PicoQuake:
                 ser.write(packet)
             except Empty:
                 pass
+
+            # check in_waiting
+            if time() - last_check_time > 1.0:
+                logger.debug(f"Serial in buffer waiting: {ser.in_waiting}")
+                last_check_time = time()
         ser.flush()
         ser.close()
 
