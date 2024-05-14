@@ -139,6 +139,9 @@ def _live_display(args):
 
 
 def _plot_fft(args):
+    if not plot_supported():
+        print("Plotting not supported. To enable install with 'pip install picoquake[plot]'.")
+        sys.exit(1)
     filename: str = args.filename
     output: str = args.output
     axis: str = args.axis

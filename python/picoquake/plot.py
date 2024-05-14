@@ -1,12 +1,21 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import mlab
 from itertools import permutations
 
 from .data import *
 
+def plot_supported() -> bool:
+    try:
+        import numpy
+        import matplotlib
+        return True
+    except ImportError:
+        return False
+
 def plot_fft(result: AcquisitionResult, output_file: str, axis: str = "xyz",
              freq_min: float = 0., freq_max: float = 0.):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib import mlab
+    
     combinations = set(''.join(p) for i in range(1, 4) for p in permutations("xyz", i))
     if axis not in combinations:
         raise ValueError("Invalid axis, must be 'x', 'y', 'z', or a combination.")

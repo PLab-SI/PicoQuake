@@ -4,15 +4,17 @@ setup(
     name='picoquake',
     version='1.0.0',
     description='Data acquisition from a PicoQuake device.',
+    python_requires=">=3.9",
     packages=find_packages(),
     install_requires=[
         'pyserial',
         'protobuf',
         'cobs',
-        'numpy',
-        'matplotlib',
         'psutil'
     ],
+    extras_require={
+        'plot': ['numpy', 'matplotlib'],
+    },
     entry_points={
         'console_scripts': [
             'picoquake=picoquake.cli:main',
