@@ -1,6 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass
-from typing import TypeVar, Type
+from typing import TypeVar, Type, Union
 
 T = TypeVar('T', bound='ConfigEnum')
 
@@ -25,7 +25,7 @@ class ConfigEnum(Enum):
         raise ValueError(f"Invalid index: {index}")
 
     @classmethod
-    def from_param_value(cls: Type[T], value: float | int, tolerance: float = 1e-5) -> T:
+    def from_param_value(cls: Type[T], value: Union[float, int], tolerance: float = 1e-5) -> T:
         for member in cls:
             if isinstance(value, float):
                 if abs(member.value[1] - value) < tolerance:
@@ -36,7 +36,7 @@ class ConfigEnum(Enum):
         raise ValueError(f"Invalid value: {value}")
     
     @classmethod
-    def find_closest(cls: Type[T], value: float | int) -> T:
+    def find_closest(cls: Type[T], value: Union[float, int]) -> T:
         if not list(cls):
                 raise ValueError("No members in the enum")
         closest = next(iter(cls))
@@ -53,7 +53,7 @@ class ConfigEnum(Enum):
         return self.value[0]
     
     @property
-    def param_value(self) ->  float | int:
+    def param_value(self) ->  Union[float, int]:
         return self.value[1]
 
 

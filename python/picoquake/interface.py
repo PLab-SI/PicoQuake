@@ -5,7 +5,7 @@ from serial.tools.list_ports import comports
 from queue import Empty, Queue
 from time import sleep, time
 from threading import Thread, Event
-from typing import List
+from typing import List, Union, Optional
 import logging
 import struct
 from datetime import datetime
@@ -53,9 +53,18 @@ class DeviceError(Exception):
         super().__init__(f"Device error: {error_code}")
 
 
+def handle_exceptions(func):
+    def wrapper(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except Exception as e:
+            self._handle_exceptions()
+    return wrapper
+
+
 class PicoQuake:
 
-    def __init__(self, short_id: str | None = None, port: str | None = None):
+    def __init__(self, short_id: Optional[str] = None, port: Optional[str] = None):
         if port is not None:
             self._port = port
         elif short_id is not None:
@@ -67,14 +76,14 @@ class PicoQuake:
         else:
             raise ValueError("Either short_id or port must be specified")
 
-        self.device_info: DeviceInfo | None = None
+        self.device_info: Optional[DeviceInfo] = None
 
         self._config = Config(DataRate.hz_100, Filter.hz_42, AccRange.g_2, GyroRange.dps_250)
         self._continuos_mode = False
         self._acquire_n_samples = 0
         self._is_sampling = False
         self._sample_list: List[IMUSample] = []
-        self._last_sample: IMUSample | None = None
+        self._last_sample: Optional[IMUSample] = None
 
         self._out_packet_queue = Queue()
         self._in_message_queue = Queue()
@@ -92,16 +101,6 @@ class PicoQuake:
 
         self._handshake()
         logger.info(f"Connected to: {self.device_info}")
-
-    @staticmethod
-    def handle_exceptions(func):
-        def wrapper(self, *args, **kwargs):
-            try:
-                return func(self, *args, **kwargs)
-            except Exception as e:
-                self._stop()
-                raise e
-        return wrapper
 
     def configure(self, data_rate: DataRate, filter_hz: Filter,
                   acc_range: AccRange, gyro_range: GyroRange):
@@ -125,7 +124,7 @@ class PicoQuake:
         self._handler_thread.join()
 
     def acquire(self, seconds: float = 0, n_samples: int = 0,
-                block: bool = True, timeout: float = 0) -> AcquisitionResult | IMUSample | None:
+                block: bool = True, timeout: float = 0) -> Union[AcquisitionResult, IMUSample, None]:
         if not self._continuos_mode:
             if seconds == 0 and n_samples == 0:
                 raise ValueError("Either seconds or n_samples must be specified,"
@@ -172,7 +171,7 @@ class PicoQuake:
         self._last_sample = None
         logger.info("Continuos mode stopped")
 
-    def _find_port(self, short_id: str) -> str | None:
+    def _find_port(self, short_id: str) -> Optional[str]:
         ports = comports()
         for p in ports:
             logger.debug(f"Found port: {p.device}, pid: {p.pid}, vid: {p.vid}, sn: {p.serial_number}")
@@ -203,7 +202,7 @@ class PicoQuake:
         self._send_command(CommandID.STOP_SAMPLING, self._config) 
         self._is_sampling = False
 
-    def _send_command(self, cmd_id: CommandID, config: Config | None = None):
+    def _send_command(self, cmd_id: CommandID, config: Optional[Config] = None):
         msg = messages_pb2.Command()
         msg.id = cmd_id.value
         if config is not None:
@@ -321,3 +320,7 @@ class PicoQuake:
         elif packet_id == PacketID.DEVICE_INFO:
             msg = messages_pb2.DeviceInfo.FromString(decoded)
         return msg
+
+    def _handle_exceptions(self):
+        self._stop()
+        raise
