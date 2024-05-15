@@ -11,6 +11,9 @@ from . import __version__
 from .interface import *
 from .plot import *
 
+logger = logging.getLogger(__name__)
+
+
 def _get_log_path(app_name):
     """
     Determines the operating system and returns the appropriate log directory path for the application.
@@ -70,7 +73,7 @@ def _acquire(args):
         print(f"Device with short_id {short_id} not found.")
         sys.exit(1)
     except Exception as e:
-        logging.error(f"Error: {e}")
+        logger.error(e)
         print(f"Error: {e}")
         sys.exit(1)
 
@@ -87,11 +90,11 @@ def _acquire(args):
         if not result.integrity:
             print(f"WARNING: Data compromised, {result.skipped_samples} samples skipped.")
     except KeyboardInterrupt:
-        logging.info("Interrupted by user.")
+        logger.info("Interrupted by user.")
         print("Interrupted by user.")
         sys.exit(1)
     except Exception as e:
-        logging.error(f"Error: {e}")
+        logger.error(e)
         print(f"Error: {e}")
         sys.exit(1)
     else:
@@ -116,7 +119,7 @@ def _live_display(args):
         print(f"Device with short_id {short_id} not found.")
         sys.exit(1)
     except Exception as e:
-        logging.error(f"Error: {e}")
+        logger.error(e)
         print(f"Error: {e}")
         sys.exit(1)
     try:   
@@ -127,11 +130,11 @@ def _live_display(args):
             print(sample)
             sleep(interval)
     except KeyboardInterrupt:
-        logging.info("Interrupted by user.")
+        logger.info("Interrupted by user.")
         print("Interrupted by user.")
         sys.exit(0)
     except Exception as e:
-        logging.error(f"Error: {e}")
+        logger.error(e)
         print(f"Error: {e}")
         sys.exit(1)
     finally:
@@ -153,14 +156,14 @@ def _plot_fft(args):
     try:
         result = AcquisitionResult.from_csv(filename)
     except Exception as e:
-        logging.error(f"Error loading file: {e}")
+        logger.error(f"Error loading file: {e}")
         print(f"Error loading file: {e}")
         sys.exit(1)
     try:
         plot_fft(result, output, axis, freq_min, freq_max)
         print(f"Plot saved to {output}")
     except Exception as e:
-        logging.error(f"Error: {e}")
+        logger.error(f"Error: {e}")
         print(f"Error: {e}")
         sys.exit(1)
 
@@ -177,9 +180,9 @@ def _list_devices(args):
 
 
 def main():
-    file_logger = logging.FileHandler(os.path.join(_get_log_path("picoquake"), "picoquake.log"), mode='a')
-    file_logger.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    logging.getLogger().addHandler(file_logger)
+    file_handler = logging.FileHandler(os.path.join(_get_log_path("picoquake"), "picoquake.log"), mode='a')
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(file_handler)
     logging.getLogger().setLevel(logging.DEBUG)
     
     main_parser = argparse.ArgumentParser(description="PicoQuake CLI.")

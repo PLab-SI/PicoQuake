@@ -5,11 +5,12 @@ from serial.tools.list_ports import comports
 from queue import Empty, Queue
 from time import sleep, time
 from threading import Thread, Event
-from typing import List, Union, Optional
+from typing import List, Union, Optional, cast
 import logging
 import struct
 from datetime import datetime
 import psutil
+import traceback
 
 from cobs import cobs
 
@@ -24,7 +25,6 @@ PRODUCT = "PicoQuake"
 
 HANDSHAKE_TIMEOUT = 5.0
 STATUS_TIMEOUT = 2.0
-USAGE_LOG_INTERVAL = 1.0
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.NOTSET)
@@ -58,7 +58,7 @@ def handle_exceptions(func):
         try:
             return func(self, *args, **kwargs)
         except Exception as e:
-            self._handle_exceptions()
+            self._handle_exceptions(e)
     return wrapper
 
 
@@ -95,12 +95,16 @@ class PicoQuake:
         self._device_status = Status(State.IDLE, 0, 0, 0)
         self._last_status_time = time()
 
+        self.exception: Optional[Exception] = None
+
+        self.started = False
         self._serial_thread.start()
         self._handler_thread.start()
         self.started = True
 
         self._handshake()
         logger.info(f"Connected to: {self.device_info}")
+        self._last_status_time = time()
 
     def configure(self, data_rate: DataRate, filter_hz: Filter,
                   acc_range: AccRange, gyro_range: GyroRange):
@@ -123,8 +127,7 @@ class PicoQuake:
         self._serial_thread.join()
         self._handler_thread.join()
 
-    def acquire(self, seconds: float = 0, n_samples: int = 0,
-                block: bool = True, timeout: float = 0) -> Union[AcquisitionResult, IMUSample, None]:
+    def acquire(self, seconds: float = 0, n_samples: int = 0) -> Union[AcquisitionResult, IMUSample]:
         if not self._continuos_mode:
             if seconds == 0 and n_samples == 0:
                 raise ValueError("Either seconds or n_samples must be specified,"
@@ -143,22 +146,29 @@ class PicoQuake:
                 if len(self._sample_list) >= n_samples:
                     self._stop_sampling()
                     break
+                if self.exception is not None:
+                    raise self.exception
                 sleep(0.001)
             stop_t = datetime.now()
             logger.info(f"Acquisition DONE. Took: {(stop_t - start_t).total_seconds():.1f}s. " \
                         f"Average CPU utilization (this process): {process.cpu_percent():.1f}%")
             return AcquisitionResult(samples=self._sample_list[0:n_samples],
-                                     device=self.device_info,
+                                     device=cast(DeviceInfo, self.device_info),
                                      config=self._config,
                                      start_time=start_t)
         else:
-            if block:
-                start_time = time()
-                while self._last_sample is None:
-                    if timeout > 0 and time() - start_time > timeout:
-                        break
-                    sleep(0.001)
-            return self._last_sample
+            start_time = time()
+            while self._last_sample is None:
+                if time() - start_time > 1.0:
+                    if self.exception is not None:
+                        raise self.exception
+                    else:
+                        raise ConnectionError("No samples received")
+                sleep(0.001)
+            if self.exception is not None:
+                raise self.exception
+            
+            return cast(IMUSample, self._last_sample)
 
     def start_continuos(self):
         self._continuos_mode = True
@@ -188,7 +198,7 @@ class PicoQuake:
             sleep(0.001)
             if time() - start_time > timeout:
                 self._stop()
-                raise HandshakeError("Timeout")
+                raise HandshakeError("Handshake timeout")
 
     def _start_sampling(self):
         logger.debug("Starting sampling...")
@@ -251,8 +261,13 @@ class PicoQuake:
                                                   msg.firmware.decode("utf-8"))
 
             # check device status
-            if time() - self._last_status_time > STATUS_TIMEOUT:
-                raise ConnectionError("Connection lost")
+            if self.device_info is not None:
+                if time() - self._last_status_time > STATUS_TIMEOUT:
+                    self._serial_thread.join(timeout=1.0)
+                    logger.debug("Handler stopped")
+                    raise ConnectionError("Connection lost, device not responding")
+        self._serial_thread.join(timeout=1.0)
+        logger.debug("Handler stopped")
 
     @handle_exceptions
     def _serial_worker(self):
@@ -261,47 +276,53 @@ class PicoQuake:
         logger.debug(f"Connecting on port {self._port} ...")
         try:
             ser = Serial(self._port, timeout=0.1)
+            ser.reset_input_buffer()
+            ser.reset_output_buffer()
         except SerialException:
             raise ConnectionError(f"Could not connect to port {self._port}")
         in_buffer = bytearray()
         receiving_packet = False
-        while not self._stop_event.is_set():
-            # receive
-            data = ser.read(1000)
-            if len(data) > 0:
-                for b in data:
-                    if b == 0x00:
-                        if receiving_packet:
-                            if len(in_buffer) > 0:
-                                # stop flag, end of packet
-                                try:
-                                    self._in_message_queue.put_nowait(self._decode_packet(in_buffer))
-                                except Exception as e:
-                                    logger.error(f"Decode error: {e}")
-                                in_buffer.clear()
-                                receiving_packet = False
+        try:
+            while not self._stop_event.is_set():
+                # receive
+                try:
+                    data = ser.read(1000)
+                except SerialException as e:
+                    raise ConnectionError("Connection lost, port closed")
+                if len(data) > 0:
+                    for b in data:
+                        if b == 0x00:
+                            if receiving_packet:
+                                if len(in_buffer) > 0:
+                                    # stop flag, end of packet
+                                    try:
+                                        self._in_message_queue.put_nowait(self._decode_packet(in_buffer))
+                                    except Exception as e:
+                                        logger.error(f"Decode error: {e}")
+                                    in_buffer.clear()
+                                    receiving_packet = False
+                                else:
+                                    # empty packet, treat as new start flag
+                                    pass
                             else:
-                                # empty packet, treat as new start flag
-                                pass
-                        else:
-                            # start flag
-                            receiving_packet = True
-                    elif receiving_packet:
-                        in_buffer.append(b)
-            
-            # send
-            try:
-                packet = self._out_packet_queue.get_nowait()
-                ser.write(packet)
-            except Empty:
-                pass
+                                # start flag
+                                receiving_packet = True
+                        elif receiving_packet:
+                            in_buffer.append(b)
+                
+                # send
+                try:
+                    packet = self._out_packet_queue.get_nowait()
+                    ser.write(packet)
+                except Empty:
+                    pass
 
-            # check in_waiting
-            if time() - last_check_time > 1.0:
-                logger.debug(f"Serial in buffer waiting: {ser.in_waiting}")
-                last_check_time = time()
-        ser.flush()
+        except:
+            ser.close()
+            logger.debug("Serial worker stopped")
+            raise
         ser.close()
+        logger.debug("Serial worker stopped")
 
     def _decode_packet(self, packet: bytes):
         packet_id = PacketID(packet[0])
@@ -321,6 +342,8 @@ class PicoQuake:
             msg = messages_pb2.DeviceInfo.FromString(decoded)
         return msg
 
-    def _handle_exceptions(self):
-        self._stop()
-        raise
+    def _handle_exceptions(self, e: Exception):
+        if self.exception is not None:
+            return
+        self.exception = e
+        logger.exception(f"Exception: {e}")
