@@ -33,7 +33,7 @@ typedef struct ImuSendStruct {
 //
 
 
-static constexpr char FIRMWARE_VERSION[] =  "0.1.0";
+static constexpr char FIRMWARE_VERSION[] =  "0.1.1";
 
 // LED on when SPI transfer ongoing or LED on when state sampling
 // #define LED_ON_SPI_TRANSFER_DEBUG
@@ -89,10 +89,16 @@ QueueHandle_t raw_data_q;
 volatile uint32_t buff_full_sample_missed_count = 0;
 
 ICM42688P icm(&SPI, cs, spi_clk_hz, int1, int2);
-uint64_t sample_count = 0;
+// sample count is counted when getting data from ICM.
+// Any data loss (full queue, USB connectio, etc) will result in non-incremental sample counts
+// count is reset when starting sampling
+volatile uint64_t sample_count = 0;
+
+// host can request a certain number of samples to be taken.
+// if 0, sampling is continuous
+volatile uint64_t num_to_sample = 0;
 
 ICM42688PAllData imu_all_data;
-ICM42688PAllData q_pop_data;
 
 // packet framing
 IMUData pb_imu_data = IMUData_init_zero;
@@ -126,7 +132,15 @@ void __time_critical_func(DataReadyInterrupt)(){
   //save temperature for status packet
   // TODO: temp is not measured when not sampling, status msg will be wrong
   last_measured_temp = imu_all_data.temp;
-  if(xQueueSendFromISR(raw_data_q, &imu_all_data, NULL) != pdTRUE){
+  ImuSendStruct to_q;
+  to_q.acc_x = imu_all_data.accel_x;
+  to_q.acc_y = imu_all_data.accel_y;
+  to_q.acc_z = imu_all_data.accel_z;
+  to_q.gyro_x = imu_all_data.gyro_x;
+  to_q.gyro_y = imu_all_data.gyro_y;
+  to_q.gyro_z = imu_all_data.gyro_z;
+  to_q.count = sample_count++;
+  if(xQueueSendFromISR(raw_data_q, &to_q, NULL) != pdTRUE){
     // queue send error - queue full!
     // TODO: missing samples if data rate = 4k
     buff_full_sample_missed_count++;
@@ -225,7 +239,7 @@ void SetupICM(){
 }
 
 // start sampling at specified settings. To change settings, stop sampling and use this function again
-void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale accel_range, ICM42688P::GyroFullScale gyro_range, FilterConfig filter_cfg){
+void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale accel_range, ICM42688P::GyroFullScale gyro_range, FilterConfig filter_cfg, uint32_t numtosample = 0){
   //todo: quickfix for now (rate not hot changing correctly)
   icm.SoftReset();
   SetupICM();
@@ -241,6 +255,8 @@ void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale acc
   delay(10);
   //reset missed samples counter
   buff_full_sample_missed_count = 0;
+  //reset sample count
+  sample_count = 0;
   //reset min available in queue
   //attach interrupt on data ready
   attachInterrupt(int1, DataReadyInterrupt, RISING);
@@ -354,20 +370,13 @@ void SendStatus(){
 
 
 void SendIMUData() {
+  ImuSendStruct DataToSend;
   if(uxQueueMessagesWaiting(raw_data_q) > 0){
     // digitalWrite(usr_led, HIGH);
-    xQueueReceive(raw_data_q, &q_pop_data, 0);
+    xQueueReceive(raw_data_q, &DataToSend, 0);
   } else {
     return;
   }
-  ImuSendStruct DataToSend;
-  DataToSend.count = sample_count++;
-  DataToSend.acc_x = q_pop_data.accel_x;
-  DataToSend.acc_y = q_pop_data.accel_y;
-  DataToSend.acc_z = q_pop_data.accel_z;
-  DataToSend.gyro_x = q_pop_data.gyro_x;
-  DataToSend.gyro_y = q_pop_data.gyro_y;
-  DataToSend.gyro_z = q_pop_data.gyro_z;
 
   // DEBUG_PRINTF("Accel: %f %f %f Gyro: %f %f %f\r\n", DataToSend.acc_x, DataToSend.acc_y, DataToSend.acc_z, DataToSend.gyro_x, DataToSend.gyro_y, DataToSend.gyro_z);
 
@@ -479,7 +488,7 @@ void setup() {
   flash_get_unique_id(flash_unique_id);
   // set_sys_clock_khz(270000, true);
 
-  raw_data_q = xQueueCreate(kSampleQueueSize, sizeof(ICM42688PAllData));
+  raw_data_q = xQueueCreate(kSampleQueueSize, sizeof(ImuSendStruct));
 
   //set INT1 as input for data ready interrupt
   pinMode(int1, INPUT);
