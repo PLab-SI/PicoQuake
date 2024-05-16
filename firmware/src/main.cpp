@@ -33,7 +33,7 @@ typedef struct ImuSendStruct {
 //
 
 
-static constexpr char FIRMWARE_VERSION[] =  "0.1.1";
+static constexpr char FIRMWARE_VERSION[] =  "0.1.2";
 
 // LED on when SPI transfer ongoing or LED on when state sampling
 // #define LED_ON_SPI_TRANSFER_DEBUG
@@ -96,7 +96,10 @@ volatile uint64_t sample_count = 0;
 
 // host can request a certain number of samples to be taken.
 // if 0, sampling is continuous
-volatile uint64_t num_to_sample = 0;
+volatile uint64_t cmd_num_to_sample = 0;
+// flag to stop sampling when requested number of samples is taken
+// cant stop in interrupt directly, takes too long, so raise a flag and stop in loop
+volatile bool req_stop_sampling_flag = false;
 
 ICM42688PAllData imu_all_data;
 
@@ -128,9 +131,15 @@ void __time_critical_func(DataReadyInterrupt)(){
   #ifdef LED_ON_SPI_TRANSFER_DEBUG
   digitalWrite(usr_led, HIGH);
   #endif
+  // check if the requested number of samples has been taken
+  // 0 means continuous sampling
+  if(cmd_num_to_sample != 0 && sample_count >= cmd_num_to_sample){
+    //raise stop sampling flag
+    req_stop_sampling_flag = true;
+    return;
+  }
   imu_all_data = icm.ReadAll();
   //save temperature for status packet
-  // TODO: temp is not measured when not sampling, status msg will be wrong
   last_measured_temp = imu_all_data.temp;
   ImuSendStruct to_q;
   to_q.acc_x = imu_all_data.accel_x;
@@ -239,11 +248,16 @@ void SetupICM(){
 }
 
 // start sampling at specified settings. To change settings, stop sampling and use this function again
-void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale accel_range, ICM42688P::GyroFullScale gyro_range, FilterConfig filter_cfg, uint32_t numtosample = 0){
+// 0 means continuous sampling, otherwise number of samples to take
+void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale accel_range, ICM42688P::GyroFullScale gyro_range, FilterConfig filter_cfg, uint32_t num_to_sample = 0){
   //todo: quickfix for now (rate not hot changing correctly)
   icm.SoftReset();
   SetupICM();
   // ...
+
+  //set global sample num request
+  cmd_num_to_sample = num_to_sample;
+
   icm.SetAccelSampleRate(rate);
   icm.SetGyroSampleRate(rate);
   icm.setAccelFullScale(accel_range);
@@ -321,7 +335,8 @@ void HandleCommand(Command cmd){
       StopSampling();
       break;
     case CommandID::START_SAMPLING:
-      StartSampling(IdxToRate(cmd.data_rate), IdxToAccelRange(cmd.acc_range), IdxToGyroRange(cmd.gyro_range), filter_configs[cmd.filter_config]);
+      // todo: get number of samples to take from cmd (prepared, commented out)
+      StartSampling(IdxToRate(cmd.data_rate), IdxToAccelRange(cmd.acc_range), IdxToGyroRange(cmd.gyro_range), filter_configs[cmd.filter_config]/*, cmd.num_to_sample*/);
       break;
     case CommandID::HANDSHAKE:
       SendHandshake();
@@ -577,6 +592,12 @@ void loop() {
 // interrupt is also on core1 (sampling start which enables interrupt is called inside ParseIncoming - interrupts run from the core they are enabled on)
 void loop1() {
   static uint32_t last_status_send_time = 0;
+
+  if(req_stop_sampling_flag){
+    StopSampling();
+    req_stop_sampling_flag = false;
+  }
+
   ParseIncoming();
   if (true) {
     if(millis() - last_status_send_time > status_send_interval_ms){
