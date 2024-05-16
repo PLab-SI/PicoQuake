@@ -14,6 +14,14 @@ from .plot import *
 logger = logging.getLogger(__name__)
 
 
+def equal_with_tolerance(a: float, b: float, tolerance: float = 1e-6) -> bool:
+    return abs(a - b) < tolerance
+
+
+def check_orientation(sample: IMUSample, target: list[float], tol: float = 0.1) -> bool:
+    return all(equal_with_tolerance(getattr(sample, axis), val, tol) for axis, val in zip(['acc_x', 'acc_y', 'acc_z'], target))
+
+
 def _get_log_path(app_name):
     """
     Determines the operating system and returns the appropriate log directory path for the application.
@@ -93,7 +101,7 @@ def _acquire(args):
             print(f"WARNING: Acquisition incomplete, requested {result.requested_samples} samples, got {result.num_samples}.")
     except KeyboardInterrupt:
         logger.info("Interrupted by user.")
-        print("Interrupted by user.")
+        print("\nInterrupted by user.")
         sys.exit(1)
     except Exception as e:
         logger.exception(e)
@@ -133,7 +141,7 @@ def _live_display(args):
             sleep(interval)
     except KeyboardInterrupt:
         logger.info("Interrupted by user.")
-        print("Interrupted by user.")
+        print("\nInterrupted by user.")
         sys.exit(0)
     except Exception as e:
         logger.exception(e)
@@ -180,6 +188,54 @@ def _list_devices(args):
         elif all_ports:
             print(f"Unknown device: {p.device}, description: {p.description}")
 
+def _test(args):
+    tol = 0.1
+    short_id: str = args.short_id
+    try:
+        device = PicoQuake(short_id)
+    except DeviceNotFound:
+        print(f"Device with short_id {short_id} not found.")
+        sys.exit(1)
+    except Exception as e:
+        logger.exception(e)
+        print(f"Error: {e}")
+        sys.exit(1)
+    try:
+        device.configure(DataRate.hz_12_5, Filter.hz_42, AccRange.g_4, GyroRange.dps_250)
+        device.start_continuos()
+        print("Point Z up...", end="", flush=True)
+        while True:
+            sample = cast(IMUSample, device.acquire())
+            if check_orientation(sample, [0, 0, 1], tol):
+                print("OK")
+                break
+            sleep(0.1)
+        print("Point X up...", end="", flush=True)
+        while True:
+            sample = cast(IMUSample, device.acquire())
+            if check_orientation(sample, [1, 0, 0], tol):
+                print("OK")
+                break
+            sleep(0.1)
+        print("Point Y down...", end="", flush=True)
+        while True:
+            sample = cast(IMUSample, device.acquire())
+            if check_orientation(sample, [0, -1, 0], tol):
+                print("OK")
+                break
+            sleep(0.1)
+        print("Successful.")
+    except KeyboardInterrupt:
+        logger.info("Interrupted by user.")
+        print("\nInterrupted by user.")
+        sys.exit(0)
+    except Exception as e:
+        logger.exception(e)
+        print(f"Error: {e}")
+        sys.exit(1)
+    finally:
+        device.stop()
+
 
 def main():
     file_handler = logging.FileHandler(os.path.join(_get_log_path("picoquake"), "picoquake.log"), mode='a')
@@ -224,6 +280,11 @@ def main():
     list_devices_parser = subparsers.add_parser("list", help="List connected PicoQuake devices.")
     list_devices_parser.add_argument("-a", "--all", action="store_true", help="List all serial ports.")
     list_devices_parser.set_defaults(func=_list_devices)
+
+    # test
+    test_parser = subparsers.add_parser("test", help="Test device.")
+    test_parser.add_argument("short_id", help="The 4 character ID of the device. Found on the label.")
+    test_parser.set_defaults(func=_test)
 
     # plot fft
     fftplot_parser = subparsers.add_parser("fftplot", help="Plot FFT of acquired data.")
