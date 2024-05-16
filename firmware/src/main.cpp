@@ -249,7 +249,8 @@ void SetupICM(){
 
 // start sampling at specified settings. To change settings, stop sampling and use this function again
 // 0 means continuous sampling, otherwise number of samples to take
-void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale accel_range, ICM42688P::GyroFullScale gyro_range, FilterConfig filter_cfg, uint32_t num_to_sample = 0){
+void StartSampling(ICM42688P::OutputDataRate rate, ICM42688P::AccelFullScale accel_range,
+                   ICM42688P::GyroFullScale gyro_range, FilterConfig filter_cfg, uint64_t num_to_sample = 0){
   //todo: quickfix for now (rate not hot changing correctly)
   icm.SoftReset();
   SetupICM();
@@ -317,26 +318,14 @@ void SendHandshake() {
 }
 
 void HandleCommand(Command cmd){
-  // id = 0x04;
-  // message Command {
-  // uint32 state = 1 [(nanopb).int_size = IS_8];
-  // uint32 filter_config = 2 [(nanopb).int_size = IS_8];
-  // uint32 data_rate = 3 [(nanopb).int_size = IS_8];
-  // uint32 acc_range = 4 [(nanopb).int_size = IS_8];
-  // uint32 gyro_range = 5 [(nanopb).int_size = IS_8];
-
-  // class State(Enum):
-  //     IDLE = 0
-  //     SAMPLING = 1
-  //     ERROR = 2
-
   switch(cmd.id){
     case CommandID::STOP_SAMPLING:
       StopSampling();
       break;
     case CommandID::START_SAMPLING:
-      // todo: get number of samples to take from cmd (prepared, commented out)
-      StartSampling(IdxToRate(cmd.data_rate), IdxToAccelRange(cmd.acc_range), IdxToGyroRange(cmd.gyro_range), filter_configs[cmd.filter_config]/*, cmd.num_to_sample*/);
+      StartSampling(IdxToRate(cmd.data_rate), IdxToAccelRange(cmd.acc_range),
+                    IdxToGyroRange(cmd.gyro_range),
+                    filter_configs[cmd.filter_config], cmd.num_to_sample);
       break;
     case CommandID::HANDSHAKE:
       SendHandshake();

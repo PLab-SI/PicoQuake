@@ -15,25 +15,13 @@ _sym_db = _symbol_database.Default()
 from . import nanopb_pb2 as nanopb__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0emessages.proto\x1a\x0cnanopb.proto\"u\n\x07IMUData\x12\r\n\x05\x63ount\x18\x01 \x01(\x04\x12\r\n\x05\x61\x63\x63_x\x18\x02 \x01(\x02\x12\r\n\x05\x61\x63\x63_y\x18\x03 \x01(\x02\x12\r\n\x05\x61\x63\x63_z\x18\x04 \x01(\x02\x12\x0e\n\x06gyro_x\x18\x05 \x01(\x02\x12\x0e\n\x06gyro_y\x18\x06 \x01(\x02\x12\x0e\n\x06gyro_z\x18\x07 \x01(\x02\"\xa3\x01\n\x0bIMUDataSmol\x12\r\n\x05\x63ount\x18\x01 \x01(\x04\x12\x14\n\x05\x61\x63\x63_x\x18\x02 \x01(\rB\x05\x92?\x02\x38\x10\x12\x14\n\x05\x61\x63\x63_y\x18\x03 \x01(\rB\x05\x92?\x02\x38\x10\x12\x14\n\x05\x61\x63\x63_z\x18\x04 \x01(\rB\x05\x92?\x02\x38\x10\x12\x15\n\x06gyro_x\x18\x05 \x01(\rB\x05\x92?\x02\x38\x10\x12\x15\n\x06gyro_y\x18\x06 \x01(\rB\x05\x92?\x02\x38\x10\x12\x15\n\x06gyro_z\x18\x07 \x01(\rB\x05\x92?\x02\x38\x10\"f\n\x06Status\x12\x14\n\x05state\x18\x01 \x01(\rB\x05\x92?\x02\x38\x08\x12\x13\n\x0btemperature\x18\x02 \x01(\x02\x12\x16\n\x0emissed_samples\x18\x03 \x01(\r\x12\x19\n\nerror_code\x18\x04 \x01(\rB\x05\x92?\x02\x38\x08\"C\n\nDeviceInfo\x12\x1a\n\tunique_id\x18\x01 \x01(\x0c\x42\x07\x92?\x04\x08\x08x\x01\x12\x19\n\x08\x66irmware\x18\x02 \x01(\x0c\x42\x07\x92?\x04\x08\tx\x01\"\x89\x01\n\x07\x43ommand\x12\x11\n\x02id\x18\x01 \x01(\rB\x05\x92?\x02\x38\x08\x12\x1c\n\rfilter_config\x18\x02 \x01(\rB\x05\x92?\x02\x38\x08\x12\x18\n\tdata_rate\x18\x03 \x01(\rB\x05\x92?\x02\x38\x08\x12\x18\n\tacc_range\x18\x04 \x01(\rB\x05\x92?\x02\x38\x08\x12\x19\n\ngyro_range\x18\x05 \x01(\rB\x05\x92?\x02\x38\x08\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0emessages.proto\x1a\x0cnanopb.proto\"u\n\x07IMUData\x12\r\n\x05\x63ount\x18\x01 \x01(\x04\x12\r\n\x05\x61\x63\x63_x\x18\x02 \x01(\x02\x12\r\n\x05\x61\x63\x63_y\x18\x03 \x01(\x02\x12\r\n\x05\x61\x63\x63_z\x18\x04 \x01(\x02\x12\x0e\n\x06gyro_x\x18\x05 \x01(\x02\x12\x0e\n\x06gyro_y\x18\x06 \x01(\x02\x12\x0e\n\x06gyro_z\x18\x07 \x01(\x02\"f\n\x06Status\x12\x14\n\x05state\x18\x01 \x01(\rB\x05\x92?\x02\x38\x08\x12\x13\n\x0btemperature\x18\x02 \x01(\x02\x12\x16\n\x0emissed_samples\x18\x03 \x01(\r\x12\x19\n\nerror_code\x18\x04 \x01(\rB\x05\x92?\x02\x38\x08\"C\n\nDeviceInfo\x12\x1a\n\tunique_id\x18\x01 \x01(\x0c\x42\x07\x92?\x04\x08\x08x\x01\x12\x19\n\x08\x66irmware\x18\x02 \x01(\x0c\x42\x07\x92?\x04\x08\tx\x01\"\xa0\x01\n\x07\x43ommand\x12\x11\n\x02id\x18\x01 \x01(\rB\x05\x92?\x02\x38\x08\x12\x1c\n\rfilter_config\x18\x02 \x01(\rB\x05\x92?\x02\x38\x08\x12\x18\n\tdata_rate\x18\x03 \x01(\rB\x05\x92?\x02\x38\x08\x12\x18\n\tacc_range\x18\x04 \x01(\rB\x05\x92?\x02\x38\x08\x12\x19\n\ngyro_range\x18\x05 \x01(\rB\x05\x92?\x02\x38\x08\x12\x15\n\rnum_to_sample\x18\x06 \x01(\x04\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'messages_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
-  _globals['_IMUDATASMOL'].fields_by_name['acc_x']._options = None
-  _globals['_IMUDATASMOL'].fields_by_name['acc_x']._serialized_options = b'\222?\0028\020'
-  _globals['_IMUDATASMOL'].fields_by_name['acc_y']._options = None
-  _globals['_IMUDATASMOL'].fields_by_name['acc_y']._serialized_options = b'\222?\0028\020'
-  _globals['_IMUDATASMOL'].fields_by_name['acc_z']._options = None
-  _globals['_IMUDATASMOL'].fields_by_name['acc_z']._serialized_options = b'\222?\0028\020'
-  _globals['_IMUDATASMOL'].fields_by_name['gyro_x']._options = None
-  _globals['_IMUDATASMOL'].fields_by_name['gyro_x']._serialized_options = b'\222?\0028\020'
-  _globals['_IMUDATASMOL'].fields_by_name['gyro_y']._options = None
-  _globals['_IMUDATASMOL'].fields_by_name['gyro_y']._serialized_options = b'\222?\0028\020'
-  _globals['_IMUDATASMOL'].fields_by_name['gyro_z']._options = None
-  _globals['_IMUDATASMOL'].fields_by_name['gyro_z']._serialized_options = b'\222?\0028\020'
   _globals['_STATUS'].fields_by_name['state']._options = None
   _globals['_STATUS'].fields_by_name['state']._serialized_options = b'\222?\0028\010'
   _globals['_STATUS'].fields_by_name['error_code']._options = None
@@ -54,12 +42,10 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_COMMAND'].fields_by_name['gyro_range']._serialized_options = b'\222?\0028\010'
   _globals['_IMUDATA']._serialized_start=32
   _globals['_IMUDATA']._serialized_end=149
-  _globals['_IMUDATASMOL']._serialized_start=152
-  _globals['_IMUDATASMOL']._serialized_end=315
-  _globals['_STATUS']._serialized_start=317
-  _globals['_STATUS']._serialized_end=419
-  _globals['_DEVICEINFO']._serialized_start=421
-  _globals['_DEVICEINFO']._serialized_end=488
-  _globals['_COMMAND']._serialized_start=491
-  _globals['_COMMAND']._serialized_end=628
+  _globals['_STATUS']._serialized_start=151
+  _globals['_STATUS']._serialized_end=253
+  _globals['_DEVICEINFO']._serialized_start=255
+  _globals['_DEVICEINFO']._serialized_end=322
+  _globals['_COMMAND']._serialized_start=325
+  _globals['_COMMAND']._serialized_end=485
 # @@protoc_insertion_point(module_scope)

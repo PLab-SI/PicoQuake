@@ -141,18 +141,27 @@ class PicoQuake:
             logger.info(f"Acquiring {n_samples} samples...")
             self._acquire_n_samples = n_samples
             start_t = datetime.now()
-            self._start_sampling()
-            while self._is_sampling:
-                if len(self._sample_list) >= n_samples:
-                    self._stop_sampling()
+            self._start_sampling(n_samples)
+            # wait for sampling to start
+            while True:
+                if self._device_status.state == State.SAMPLING:
                     break
+                sleep(0.001)
+            # wait for sampling to finish
+            while True:
                 if self.exception is not None:
                     raise self.exception
+                if self._device_status.state == State.IDLE:
+                    break
                 sleep(0.001)
             stop_t = datetime.now()
             logger.info(f"Acquisition DONE. Took: {(stop_t - start_t).total_seconds():.1f}s. " \
                         f"Average CPU utilization (this process): {process.cpu_percent():.1f}%")
+            logger.info(f"Received {len(self._sample_list)} samples")
+            if len(self._sample_list) < n_samples:
+                logger.warning(f"Expected {n_samples} samples, received {len(self._sample_list)}")
             return AcquisitionResult(samples=self._sample_list[0:n_samples],
+                                     requested_samples=n_samples,
                                      device=cast(DeviceInfo, self.device_info),
                                      config=self._config,
                                      start_time=start_t)
@@ -200,19 +209,20 @@ class PicoQuake:
                 self._stop()
                 raise HandshakeError("Handshake timeout")
 
-    def _start_sampling(self):
+    def _start_sampling(self, num_samples: int = 0):
         logger.debug("Starting sampling...")
         self._sample_list = []
         self._last_sample = None
-        self._send_command(CommandID.START_SAMPLING, self._config)
+        self._send_command(CommandID.START_SAMPLING, self._config, num_samples)
         self._is_sampling = True
 
     def _stop_sampling(self):
         logger.debug("Stopping sampling...")
-        self._send_command(CommandID.STOP_SAMPLING, self._config) 
+        self._send_command(CommandID.STOP_SAMPLING) 
         self._is_sampling = False
 
-    def _send_command(self, cmd_id: CommandID, config: Optional[Config] = None):
+    def _send_command(self, cmd_id: CommandID, config: Optional[Config] = None,
+                      num_samples: int = 0):
         msg = messages_pb2.Command()
         msg.id = cmd_id.value
         if config is not None:
@@ -220,6 +230,7 @@ class PicoQuake:
             msg.data_rate = config.data_rate.index
             msg.acc_range = config.acc_range.index
             msg.gyro_range = config.gyro_range.index
+            msg.num_to_sample = num_samples
         packet = cobs.encode(msg.SerializeToString())
         packet = bytes([0x00]) + bytes([PacketID.COMMAND.value]) + packet + bytes([0x00])
         self._out_packet_queue.put_nowait(packet)
@@ -252,7 +263,9 @@ class PicoQuake:
                 elif isinstance(msg, messages_pb2.Status):
                     status = Status(State(msg.state), msg.temperature,
                                     msg.missed_samples, msg.error_code)
-                    self.device_status = status
+                    if status.state != self._device_status.state:
+                        logger.debug(f"Device state changed from {self._device_status.state.name} to {status.state.name}")
+                    self._device_status = status
                     self._last_status_time = time()
                     if status.state == State.ERROR.value:
                         raise DeviceError(status.error_code)

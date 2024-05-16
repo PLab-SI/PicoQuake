@@ -3,6 +3,7 @@ from enum import Enum
 from hashlib import blake2b
 from datetime import datetime
 import csv
+from typing import Optional
 
 from .configuration import *
 
@@ -84,6 +85,7 @@ class DeviceInfo:
 @dataclass
 class AcquisitionResult:
     samples: list[IMUSample]
+    requested_samples: Optional[int]
     device: DeviceInfo
     config: Config
     start_time: datetime
@@ -178,4 +180,4 @@ class AcquisitionResult:
             except Exception as e:
                 raise ValueError(f"Error parsing samples: {e}")
             
-            return cls(samples, device, config, start_time)
+            return cls(samples, None, device, config, start_time)

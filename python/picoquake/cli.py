@@ -73,7 +73,7 @@ def _acquire(args):
         print(f"Device with short_id {short_id} not found.")
         sys.exit(1)
     except Exception as e:
-        logger.error(e)
+        logger.exception(e)
         print(f"Error: {e}")
         sys.exit(1)
 
@@ -88,13 +88,15 @@ def _acquire(args):
         result = cast(AcquisitionResult, device.acquire(seconds))
         print("Done.")
         if not result.integrity:
-            print(f"WARNING: Data compromised, {result.skipped_samples} samples skipped.")
+            print(f"WARNING: Acquisition invalid, {result.skipped_samples} samples skipped.")
+        elif result.requested_samples != result.num_samples:
+            print(f"WARNING: Acquisition incomplete, requested {result.requested_samples} samples, got {result.num_samples}.")
     except KeyboardInterrupt:
         logger.info("Interrupted by user.")
         print("Interrupted by user.")
         sys.exit(1)
     except Exception as e:
-        logger.error(e)
+        logger.exception(e)
         print(f"Error: {e}")
         sys.exit(1)
     else:
@@ -119,7 +121,7 @@ def _live_display(args):
         print(f"Device with short_id {short_id} not found.")
         sys.exit(1)
     except Exception as e:
-        logger.error(e)
+        logger.exception(e)
         print(f"Error: {e}")
         sys.exit(1)
     try:   
@@ -134,7 +136,7 @@ def _live_display(args):
         print("Interrupted by user.")
         sys.exit(0)
     except Exception as e:
-        logger.error(e)
+        logger.exception(e)
         print(f"Error: {e}")
         sys.exit(1)
     finally:
@@ -156,14 +158,14 @@ def _plot_fft(args):
     try:
         result = AcquisitionResult.from_csv(filename)
     except Exception as e:
-        logger.error(f"Error loading file: {e}")
+        logger.exception(e)
         print(f"Error loading file: {e}")
         sys.exit(1)
     try:
         plot_fft(result, output, axis, freq_min, freq_max)
         print(f"Plot saved to {output}")
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.exception(e)
         print(f"Error: {e}")
         sys.exit(1)
 

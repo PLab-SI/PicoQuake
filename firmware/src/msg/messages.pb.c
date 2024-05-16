@@ -9,9 +9,6 @@
 PB_BIND(IMUData, IMUData, AUTO)
 
 
-PB_BIND(IMUDataSmol, IMUDataSmol, AUTO)
-
-
 PB_BIND(Status, Status, AUTO)
 
 
