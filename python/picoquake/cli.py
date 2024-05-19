@@ -155,22 +155,24 @@ def _plot_fft(args):
     if not plot_supported():
         print("Plotting not supported. To enable install with 'pip install picoquake[plot]'.")
         sys.exit(1)
-    filename: str = args.filename
+    csv_path: str = args.csv_path
     output: str = args.output
     axis: str = args.axis
     freq_min: float = args.freq_min
     freq_max: float = args.freq_max
+    peaks: bool = args.peaks
+    title: str = args.title
 
-    output = output if output != '.' else os.path.splitext(filename)[0] + "_fft.png"
+    output = output if output != '.' else os.path.splitext(csv_path)[0] + "_fft.png"
 
     try:
-        result = AcquisitionResult.from_csv(filename)
+        result = AcquisitionResult.from_csv(csv_path)
     except Exception as e:
         logger.exception(e)
         print(f"Error loading file: {e}")
         sys.exit(1)
     try:
-        plot_fft(result, output, axis, freq_min, freq_max)
+        plot_fft(result, output, axis, freq_min, freq_max, peaks, title)
         print(f"Plot saved to {output}")
     except Exception as e:
         logger.exception(e)
@@ -288,11 +290,13 @@ def main():
 
     # plot fft
     fftplot_parser = subparsers.add_parser("fftplot", help="Plot FFT of acquired data.")
-    fftplot_parser.add_argument("filename", help="The CSV file containing the acquired data.")
+    fftplot_parser.add_argument("csv_path", help="The CSV file containing the acquired data.")
     fftplot_parser.add_argument("output", help="The output file to save the plot to. '.' to save next to the data file.")
     fftplot_parser.add_argument("-a", "--axis", default="xyz", help="Axis to plot, must be 'x', 'y', 'z', or a combination")
-    fftplot_parser.add_argument("-fmin", "--freq_min", type=float, default=5.0, help="Minimum frequency to plot.")
-    fftplot_parser.add_argument("-fmax", "--freq_max", type=float, default=100.0, help="Maximum frequency to plot.")
+    fftplot_parser.add_argument("-fmin", "--freq_min", type=float, default=0.0, help="Minimum frequency to plot.")
+    fftplot_parser.add_argument("-fmax", "--freq_max", type=float, default=1000.0, help="Maximum frequency to plot.")
+    fftplot_parser.add_argument("--peaks", action="store_true", help="Annotate peaks on the plot.")
+    fftplot_parser.add_argument("--title", help="Title of the plot.", default=None)
     fftplot_parser.set_defaults(func=_plot_fft)
     
     args = main_parser.parse_args()

@@ -4,6 +4,7 @@ from hashlib import blake2b
 from datetime import datetime
 import csv
 from typing import Optional
+import os
 
 from .configuration import *
 
@@ -90,6 +91,7 @@ class AcquisitionResult:
     config: Config
     start_time: datetime
     skipped_samples: int = field(init=False)
+    csv_path: Optional[str] = None
 
     @property
     def duration(self) -> float:
@@ -102,6 +104,13 @@ class AcquisitionResult:
     @property
     def integrity(self) -> bool:
         return self.skipped_samples == 0
+    
+    @property
+    def filename(self) -> Optional[str]:
+        if self.csv_path is None:
+            return None
+        else:
+            return os.path.basename(self.csv_path)
     
     def check_integrity(self) -> int:
         last_count = self.samples[0].count
@@ -144,8 +153,8 @@ class AcquisitionResult:
                                 sample.gyro_x, sample.gyro_y, sample.gyro_z])
 
     @classmethod
-    def from_csv(cls, filename: str) -> 'AcquisitionResult':
-        with open(filename, "r") as f:
+    def from_csv(cls, path: str) -> 'AcquisitionResult':
+        with open(path, "r") as f:
             reader = csv.reader(f)
             metadata = []
             try:
@@ -180,4 +189,9 @@ class AcquisitionResult:
             except Exception as e:
                 raise ValueError(f"Error parsing samples: {e}")
             
-            return cls(samples, None, device, config, start_time)
+            return cls(samples=samples,
+                       requested_samples=None,
+                       device=device,
+                       config=config,
+                       start_time=start_time,
+                       csv_path=path)

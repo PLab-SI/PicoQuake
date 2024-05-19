@@ -13,7 +13,7 @@ setup(
         'psutil'
     ],
     extras_require={
-        'plot': ['numpy', 'matplotlib'],
+        'plot': ['numpy', 'scipy', 'matplotlib'],
     },
     entry_points={
         'console_scripts': [
