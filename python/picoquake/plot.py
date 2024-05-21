@@ -63,7 +63,7 @@ def plot_fft(result: AcquisitionResult, output_file: str, axis: str = "xyz",
     plt.minorticks_on()
     plt.legend(loc="upper right")
     plt.autoscale(enable=True, axis='y', tight=False)
-    plt.savefig(output_file)
+    plt.savefig(output_file, dpi=200)
 
 def plot(result: AcquisitionResult, output_file: str, axis: str = "xyz",
          tstart: float = 0, tend: float = float("inf"), title=None) -> None:
@@ -102,6 +102,6 @@ def plot(result: AcquisitionResult, output_file: str, axis: str = "xyz",
     plt.minorticks_on()
     plt.legend(loc="upper right")
     plt.autoscale(enable=True, axis='y', tight=False)
-    plt.savefig(output_file)
+    plt.savefig(output_file, dpi=200)
 
 
