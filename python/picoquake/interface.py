@@ -5,12 +5,11 @@ from serial.tools.list_ports import comports
 from queue import Empty, Queue
 from time import sleep, time
 from threading import Thread, Event
-from typing import List, Union, Optional, cast
+from typing import List, Optional, cast
 import logging
 import struct
 from datetime import datetime
 import psutil
-import traceback
 
 from cobs import cobs
 
@@ -127,57 +126,48 @@ class PicoQuake:
         self._serial_thread.join()
         self._handler_thread.join()
 
-    def acquire(self, seconds: float = 0, n_samples: int = 0) -> Union[AcquisitionResult, IMUSample]:
-        if not self._continuos_mode:
-            if seconds == 0 and n_samples == 0:
-                raise ValueError("Either seconds or n_samples must be specified,"
-                                 "or use start_continuos() before acquire()")
-            if seconds > 0:
-                n_samples = int(seconds * self._config.data_rate.param_value)
+    def acquire(self, seconds: float = 0, n_samples: int = 0) -> AcquisitionResult:
+        if self._continuos_mode:
+            raise RuntimeError("Continuos mode is active, stop it before acquiring")
+        if seconds != 0 and n_samples != 0:
+            raise ValueError("Either seconds or n_samples must be specified, not both")
+        if seconds == 0 and n_samples == 0:
+            raise ValueError("Either seconds or n_samples must be specified")
+        if seconds < 0 or n_samples < 0:
+            raise ValueError("Seconds and n_samples must be positive")
+        if seconds > 0:
+            n_samples = int(seconds * self._config.data_rate.param_value)
 
-            process = psutil.Process()
-            process.cpu_percent()
+        process = psutil.Process()
+        process.cpu_percent()
 
-            logger.info(f"Acquiring {n_samples} samples...")
-            self._acquire_n_samples = n_samples
-            start_t = datetime.now()
-            self._start_sampling(n_samples)
-            # wait for sampling to start
-            while True:
-                if self._device_status.state == State.SAMPLING:
-                    break
-                sleep(0.001)
-            # wait for sampling to finish
-            while True:
-                if self.exception is not None:
-                    raise self.exception
-                if self._device_status.state == State.IDLE:
-                    break
-                sleep(0.001)
-            stop_t = datetime.now()
-            logger.info(f"Acquisition DONE. Took: {(stop_t - start_t).total_seconds():.1f}s. " \
-                        f"Average CPU utilization (this process): {process.cpu_percent():.1f}%")
-            logger.info(f"Received {len(self._sample_list)} samples")
-            if len(self._sample_list) < n_samples:
-                logger.warning(f"Expected {n_samples} samples, received {len(self._sample_list)}")
-            return AcquisitionResult(samples=self._sample_list[0:n_samples],
-                                     requested_samples=n_samples,
-                                     device=cast(DeviceInfo, self.device_info),
-                                     config=self._config,
-                                     start_time=start_t)
-        else:
-            start_time = time()
-            while self._last_sample is None:
-                if time() - start_time > 1.0:
-                    if self.exception is not None:
-                        raise self.exception
-                    else:
-                        raise ConnectionError("No samples received")
-                sleep(0.001)
+        logger.info(f"Acquiring {n_samples} samples...")
+        self._acquire_n_samples = n_samples
+        start_t = datetime.now()
+        self._start_sampling(n_samples)
+        # wait for sampling to start
+        while True:
+            if self._device_status.state == State.SAMPLING:
+                break
+            sleep(0.001)
+        # wait for sampling to finish
+        while True:
             if self.exception is not None:
                 raise self.exception
-            
-            return cast(IMUSample, self._last_sample)
+            if self._device_status.state == State.IDLE:
+                break
+            sleep(0.001)
+        stop_t = datetime.now()
+        logger.info(f"Acquisition DONE. Took: {(stop_t - start_t).total_seconds():.1f}s. " \
+                    f"Average CPU utilization (this process): {process.cpu_percent():.1f}%")
+        logger.info(f"Received {len(self._sample_list)} samples")
+        if len(self._sample_list) < n_samples:
+            logger.warning(f"Expected {n_samples} samples, received {len(self._sample_list)}")
+        return AcquisitionResult(samples=self._sample_list[0:n_samples],
+                                    requested_samples=n_samples,
+                                    device=cast(DeviceInfo, self.device_info),
+                                    config=self._config,
+                                    start_time=start_t)
 
     def start_continuos(self):
         self._continuos_mode = True
@@ -189,6 +179,22 @@ class PicoQuake:
         self._stop_sampling()
         self._last_sample = None
         logger.info("Continuos mode stopped")
+
+    def read_last(self) -> IMUSample:
+        if not self._continuos_mode:
+            raise RuntimeError("Continuos mode not started")
+
+        start_time = time()
+        while self._last_sample is None:
+            if time() - start_time > 1.0:
+                if self.exception is not None:
+                    raise self.exception
+                else:
+                    raise ConnectionError("No samples received")
+            sleep(0.001)
+        if self.exception is not None:
+            raise self.exception
+        return self._last_sample
 
     def _find_port(self, short_id: str) -> Optional[str]:
         ports = comports()

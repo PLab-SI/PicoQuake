@@ -1,5 +1,4 @@
 from typing import cast
-import csv
 import logging
 from serial.tools.list_ports import comports
 import argparse
@@ -136,7 +135,7 @@ def _live_display(args):
         device.configure(DataRate.hz_12_5, Filter.hz_42, AccRange.g_4, GyroRange.dps_250)
         device.start_continuos()
         while True:
-            sample = device.acquire()
+            sample = device.read_last()
             print(sample)
             sleep(interval)
     except KeyboardInterrupt:
@@ -235,21 +234,21 @@ def _test(args):
         device.start_continuos()
         print("Point Z up...", end="", flush=True)
         while True:
-            sample = cast(IMUSample, device.acquire())
+            sample = cast(IMUSample, device.read_last())
             if check_orientation(sample, [0, 0, 1], tol):
                 print("OK")
                 break
             sleep(0.1)
         print("Point X up...", end="", flush=True)
         while True:
-            sample = cast(IMUSample, device.acquire())
+            sample = cast(IMUSample, device.read_last())
             if check_orientation(sample, [1, 0, 0], tol):
                 print("OK")
                 break
             sleep(0.1)
         print("Point Y down...", end="", flush=True)
         while True:
-            sample = cast(IMUSample, device.acquire())
+            sample = cast(IMUSample, device.read_last())
             if check_orientation(sample, [0, -1, 0], tol):
                 print("OK")
                 break
