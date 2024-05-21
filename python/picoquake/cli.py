@@ -151,10 +151,7 @@ def _live_display(args):
         device.stop()
 
 
-def _plot_fft(args):
-    if not plot_supported():
-        print("Plotting not supported. To enable install with 'pip install picoquake[plot]'.")
-        sys.exit(1)
+def _plot_psd(args):
     csv_path: str = args.csv_path
     output: str = args.output
     axis: str = args.axis
@@ -172,17 +169,17 @@ def _plot_fft(args):
         print(f"Error loading file: {e}")
         sys.exit(1)
     try:
-        plot_fft(result, output, axis, freq_min, freq_max, peaks, title)
+        plot_psd(result, output, axis, freq_min, freq_max, peaks, title)
         print(f"Plot saved to {output}")
+    except ModuleNotFoundError:
+        print("Plotting not supported. To enable install with 'pip install picoquake[plot]'.")
+        sys.exit(1)
     except Exception as e:
         logger.exception(e)
         print(f"Error: {e}")
         sys.exit(1)
 
 def _plot(args):
-    if not plot_supported():
-        print("Plotting not supported. To enable install with 'pip install picoquake[plot]'.")
-        sys.exit(1)
     csv_path: str = args.csv_path
     output: str = args.output
     axis: str = args.axis
@@ -201,6 +198,9 @@ def _plot(args):
     try:
         plot(result, output, axis, time_start, time_end, title)
         print(f"Plot saved to {output}")
+    except ModuleNotFoundError:
+        print("Plotting not supported. To enable install with 'pip install picoquake[plot]'.")
+        sys.exit(1)
     except Exception as e:
         logger.exception(e)
         print(f"Error: {e}")
@@ -316,8 +316,8 @@ def main():
     test_parser.add_argument("short_id", help="The 4 character ID of the device. Found on the label.")
     test_parser.set_defaults(func=_test)
 
-    # plot fft
-    fftplot_parser = subparsers.add_parser("fftplot", help="Plot FFT of acquired data.")
+    # plot PSD
+    fftplot_parser = subparsers.add_parser("plot_psd", help="Plot Power Spectral Density of acquired data.")
     fftplot_parser.add_argument("csv_path", help="The CSV file containing the acquired data.")
     fftplot_parser.add_argument("output", help="The output file to save the plot to. '.' to save next to the data file.")
     fftplot_parser.add_argument("-a", "--axis", default="xyz", help="Axis to plot, must be 'x', 'y', 'z', or a combination")
@@ -325,7 +325,7 @@ def main():
     fftplot_parser.add_argument("-fmax", "--freq_max", type=float, default=1000.0, help="Maximum frequency to plot.")
     fftplot_parser.add_argument("--peaks", action="store_true", help="Annotate peaks on the plot.")
     fftplot_parser.add_argument("--title", help="Title of the plot.", default=None)
-    fftplot_parser.set_defaults(func=_plot_fft)
+    fftplot_parser.set_defaults(func=_plot_psd)
 
     # plot
     plot_parser = subparsers.add_parser("plot", help="Plot acquired data (time series).")

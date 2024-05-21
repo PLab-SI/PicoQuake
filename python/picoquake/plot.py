@@ -2,17 +2,8 @@ from itertools import permutations
 
 from .data import *
 
-def plot_supported() -> bool:
-    try:
-        import numpy as np
-        import matplotlib.pyplot as plt
-        from scipy.signal import welch, find_peaks
-        return True
-    except ModuleNotFoundError:
-        return False
-
-def plot_fft(result: AcquisitionResult, output_file: str, axis: str = "xyz",
-             freq_min: float = 0, freq_max: float = float("inf"),
+def plot_psd(result: AcquisitionResult, output_file: str, axis: str = "xyz",
+             freq_min: float = 0, freq_max: Optional[float] = None,
              show_peaks: bool = False, title=None) -> None:
     import numpy as np
     import matplotlib.pyplot as plt
@@ -22,17 +13,36 @@ def plot_fft(result: AcquisitionResult, output_file: str, axis: str = "xyz",
     if axis not in combinations:
         raise ValueError("Invalid axis, must be 'x', 'y', 'z', or a combination.")
     if not result.integrity:
-        print(f"WARNING: Data integrity compromised, {result.skipped_samples} samples skipped.")
+        print(f"Warning: Data integrity compromised, {result.skipped_samples} samples skipped.")
+
+    # check Nyquist criterion
+    if result.config.data_rate.param_value < 2 * result.config.filter.param_value:
+        print(f"Warning: sample rate {result.config.data_rate.param_value} Hz is "
+              f"not >= 2 * filter frequency {result.config.filter.param_value} Hz.")
     
+    # check frequency range
+    if freq_max is None:
+        freq_max = result.config.data_rate.param_value // 2
+    elif freq_max > result.config.data_rate.param_value // 2:
+        print(f"Warning: freq_max ({freq_max} Hz) is greater "
+              f"than 0.5 x sample rate ({result.config.data_rate.param_value} Hz). "
+              f"Limiting to {result.config.data_rate.param_value // 2} Hz.")
+        freq_max = result.config.data_rate.param_value // 2
+
+    if freq_min >= freq_max:
+        raise ValueError("freq_min must be less than freq_max.")
+
     acc_x = np.array([s.acc_x for s in result.samples])
     acc_y = np.array([s.acc_y for s in result.samples])
     acc_z = np.array([s.acc_z for s in result.samples])
 
-    plt.figure(figsize=(10, 8))  # Increase figure size. You can adjust the values as needed.
+    # calculate segment length based on plot frequency range
+    nperseg = min(int((100 * result.config.data_rate.param_value) // (freq_max - freq_min)), len(acc_x))
 
+    plt.figure(figsize=(10, 8))  # Increase figure size. You can adjust the values as needed.
     for ax, acc, color in zip(['x', 'y', 'z'], [acc_x, acc_y, acc_z], ["red", "green", "blue"]):
         if ax in axis:
-            f, p_den = welch(acc, fs=result.config.data_rate.param_value, nperseg=2048, scaling="density")
+            f, p_den = welch(acc, fs=result.config.data_rate.param_value, nperseg=nperseg, scaling="density")
             mask = (f >= freq_min) & (f <= freq_max)
             f = f[mask]
             p_den = p_den[mask]
@@ -74,7 +84,7 @@ def plot(result: AcquisitionResult, output_file: str, axis: str = "xyz",
     if axis not in combinations:
         raise ValueError("Invalid axis, must be 'x', 'y', 'z', or a combination.")
     if not result.integrity:
-        print(f"WARNING: Data integrity compromised, {result.skipped_samples} samples skipped.")
+        print(f"Warning: Data integrity compromised, {result.skipped_samples} samples skipped.")
 
     acc_x = np.array([s.acc_x for s in result.samples])
     acc_y = np.array([s.acc_y for s in result.samples])
