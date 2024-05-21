@@ -179,6 +179,34 @@ def _plot_fft(args):
         print(f"Error: {e}")
         sys.exit(1)
 
+def _plot(args):
+    if not plot_supported():
+        print("Plotting not supported. To enable install with 'pip install picoquake[plot]'.")
+        sys.exit(1)
+    csv_path: str = args.csv_path
+    output: str = args.output
+    axis: str = args.axis
+    time_start: float = args.time_start
+    time_end: float = args.time_end
+    title: str = args.title
+
+    output = output if output != '.' else os.path.splitext(csv_path)[0] + "_plot.png"
+
+    try:
+        result = AcquisitionResult.from_csv(csv_path)
+    except Exception as e:
+        logger.exception(e)
+        print(f"Error loading file: {e}")
+        sys.exit(1)
+    try:
+        plot(result, output, axis, time_start, time_end, title)
+        print(f"Plot saved to {output}")
+    except Exception as e:
+        logger.exception(e)
+        print(f"Error: {e}")
+        sys.exit(1)
+
+
 
 def _list_devices(args):
     all_ports = args.all
@@ -298,6 +326,17 @@ def main():
     fftplot_parser.add_argument("--peaks", action="store_true", help="Annotate peaks on the plot.")
     fftplot_parser.add_argument("--title", help="Title of the plot.", default=None)
     fftplot_parser.set_defaults(func=_plot_fft)
+
+    # plot
+    plot_parser = subparsers.add_parser("plot", help="Plot acquired data (time series).")
+    plot_parser.add_argument("csv_path", help="The CSV file containing the acquired data.")
+    plot_parser.add_argument("output", help="The output file to save the plot to. '.' to save next to the data file.")
+    plot_parser.add_argument("-a", "--axis", default="xyz", help="Axis to plot, must be 'x', 'y', 'z', or a combination")
+    plot_parser.add_argument("-tstart", "--time_start", type=float, default=0.0, help="Start time of the plot.")
+    plot_parser.add_argument("-tend", "--time_end", type=float, default=None, help="End time of the plot.")
+    plot_parser.add_argument("--title", help="Title of the plot.", default=None)
+    plot_parser.set_defaults(func=_plot)
+
     
     args = main_parser.parse_args()
     args.func(args)
