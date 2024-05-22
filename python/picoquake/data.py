@@ -84,9 +84,8 @@ class DeviceInfo:
 
 
 @dataclass
-class AcquisitionResult:
+class AcquisitionData:
     samples: list[IMUSample]
-    requested_samples: Optional[int]
     device: DeviceInfo
     config: Config
     start_time: datetime
@@ -95,7 +94,7 @@ class AcquisitionResult:
 
     @property
     def duration(self) -> float:
-        return self.num_samples / self.config.data_rate.param_value
+        return self.num_samples / self.config.sample_rate.param_value
     
     @property
     def num_samples(self) -> int:
@@ -153,7 +152,7 @@ class AcquisitionResult:
                                 sample.gyro_x, sample.gyro_y, sample.gyro_z])
 
     @classmethod
-    def from_csv(cls, path: str) -> 'AcquisitionResult':
+    def from_csv(cls, path: str) -> 'AcquisitionData':
         with open(path, "r") as f:
             reader = csv.reader(f)
             metadata = []
@@ -169,11 +168,11 @@ class AcquisitionResult:
                     firmware = "unknown"
                 device = DeviceInfo(unique_id, firmware)
 
-                data_rate = float(metadata[3][0].split(" = ")[1].split(" ")[0])
+                sample_rate = float(metadata[3][0].split(" = ")[1].split(" ")[0])
                 filter = float(metadata[3][1].split(" = ")[1].split(" ")[0])
                 acc_range = float(metadata[3][2].split(" = ")[1].split(" ")[0])
                 gyro_range = float(metadata[3][3].split(" = ")[1].split(" ")[0])
-                config = Config(DataRate.from_param_value(data_rate),
+                config = Config(SampleRate.from_param_value(sample_rate),
                                 Filter.from_param_value(filter),
                                 AccRange.from_param_value(acc_range),
                                 GyroRange.from_param_value(gyro_range))
@@ -190,7 +189,6 @@ class AcquisitionResult:
                 raise ValueError(f"Error parsing samples: {e}")
             
             return cls(samples=samples,
-                       requested_samples=None,
                        device=device,
                        config=config,
                        start_time=start_time,

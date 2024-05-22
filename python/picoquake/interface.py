@@ -5,7 +5,7 @@ from serial.tools.list_ports import comports
 from queue import Empty, Queue
 from time import sleep, time
 from threading import Thread, Event
-from typing import List, Optional, cast
+from typing import List, Optional, cast, Tuple, Union
 import logging
 import struct
 from datetime import datetime
@@ -24,6 +24,7 @@ PRODUCT = "PicoQuake"
 
 HANDSHAKE_TIMEOUT = 5.0
 STATUS_TIMEOUT = 2.0
+SAMPLE_START_TIMEOUT = 1.0
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.NOTSET)
@@ -77,7 +78,7 @@ class PicoQuake:
 
         self.device_info: Optional[DeviceInfo] = None
 
-        self._config = Config(DataRate.hz_100, Filter.hz_42, AccRange.g_2, GyroRange.dps_250)
+        self._config = Config(SampleRate.hz_100, Filter.hz_42, AccRange.g_2, GyroRange.dps_250)
         self._continuos_mode = False
         self._acquire_n_samples = 0
         self._is_sampling = False
@@ -105,14 +106,14 @@ class PicoQuake:
         logger.info(f"Connected to: {self.device_info}")
         self._last_status_time = time()
 
-    def configure(self, data_rate: DataRate, filter_hz: Filter,
+    def configure(self, sample_rate: SampleRate, filter_hz: Filter,
                   acc_range: AccRange, gyro_range: GyroRange):
-        self._config = Config(data_rate, filter_hz, acc_range, gyro_range)
+        self._config = Config(sample_rate, filter_hz, acc_range, gyro_range)
         logger.info(f"Configuration set: {self._config}")
 
-    def configure_approx(self, data_rate: float, filter_hz: float,
+    def configure_approx(self, sample_rate: float, filter_hz: float,
                          acc_range: float, gyro_range: float):
-        self.configure(DataRate.find_closest(data_rate),
+        self.configure(SampleRate.find_closest(sample_rate),
                        Filter.find_closest(filter_hz),
                        AccRange.find_closest(acc_range),
                        GyroRange.find_closest(gyro_range))
@@ -126,7 +127,7 @@ class PicoQuake:
         self._serial_thread.join()
         self._handler_thread.join()
 
-    def acquire(self, seconds: float = 0, n_samples: int = 0) -> AcquisitionResult:
+    def acquire(self, seconds: float = 0, n_samples: int = 0) -> Tuple[AcquisitionData, Optional[Exception]]:
         if self._continuos_mode:
             raise RuntimeError("Continuos mode is active, stop it before acquiring")
         if seconds != 0 and n_samples != 0:
@@ -136,38 +137,55 @@ class PicoQuake:
         if seconds < 0 or n_samples < 0:
             raise ValueError("Seconds and n_samples must be positive")
         if seconds > 0:
-            n_samples = int(seconds * self._config.data_rate.param_value)
+            n_samples = int(seconds * self._config.sample_rate.param_value)
 
         process = psutil.Process()
         process.cpu_percent()
 
-        logger.info(f"Acquiring {n_samples} samples...")
+        max_duration = n_samples / self._config.sample_rate.param_value * 1.2 + 1.0
+        exception: Optional[Exception] = None
+
+        logger.info(f"Acquiring {n_samples} samples, max expected duration: {max_duration:.1f}s")
         self._acquire_n_samples = n_samples
-        start_t = datetime.now()
         self._start_sampling(n_samples)
         # wait for sampling to start
+        cmd_start_t = time()
         while True:
             if self._device_status.state == State.SAMPLING:
                 break
+            if time() - cmd_start_t > SAMPLE_START_TIMEOUT:
+                raise ConnectionError("Sampling not started in time")
             sleep(0.001)
+        start_t = time()
         # wait for sampling to finish
         while True:
             if self.exception is not None:
-                raise self.exception
+                exception = self.exception
+                break
             if self._device_status.state == State.IDLE:
                 break
+            if time() - start_t > max_duration:
+                exception = ConnectionError("Sampling timeout")
+                break
             sleep(0.001)
-        stop_t = datetime.now()
-        logger.info(f"Acquisition DONE. Took: {(stop_t - start_t).total_seconds():.1f}s. " \
+        stop_t = time()
+        logger.info(f"Acquisition stopped. Took: {stop_t - start_t:.1f}s. " \
                     f"Average CPU utilization (this process): {process.cpu_percent():.1f}%")
         logger.info(f"Received {len(self._sample_list)} samples")
-        if len(self._sample_list) < n_samples:
-            logger.warning(f"Expected {n_samples} samples, received {len(self._sample_list)}")
-        return AcquisitionResult(samples=self._sample_list[0:n_samples],
-                                    requested_samples=n_samples,
-                                    device=cast(DeviceInfo, self.device_info),
-                                    config=self._config,
-                                    start_time=start_t)
+
+        data = AcquisitionData(samples=self._sample_list[0:n_samples],
+                               device=cast(DeviceInfo, self.device_info),
+                               config=self._config,
+                               start_time=datetime.fromtimestamp(start_t))
+
+        if exception is None:
+            if len(self._sample_list) < n_samples:
+                logger.warning(f"Expected {n_samples} samples, received {len(self._sample_list)}")
+                exception = ConnectionError("Not all samples received")
+            elif not data.check_integrity:
+                logger.warning(f"Data integrity compromised, {data.skipped_samples} samples skipped")
+                exception = ConnectionError("Data integrity compromised")
+        return data, exception
 
     def start_continuos(self):
         self._continuos_mode = True
@@ -233,7 +251,7 @@ class PicoQuake:
         msg.id = cmd_id.value
         if config is not None:
             msg.filter_config = config.filter.index
-            msg.data_rate = config.data_rate.index
+            msg.data_rate = config.sample_rate.index
             msg.acc_range = config.acc_range.index
             msg.gyro_range = config.gyro_range.index
             msg.num_to_sample = num_samples

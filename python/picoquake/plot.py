@@ -2,7 +2,7 @@ from itertools import permutations
 
 from .data import *
 
-def plot_psd(result: AcquisitionResult, output_file: str, axis: str = "xyz",
+def plot_psd(result: AcquisitionData, output_file: str, axis: str = "xyz",
              freq_min: float = 0, freq_max: Optional[float] = None,
              show_peaks: bool = False, title=None) -> None:
     import numpy as np
@@ -16,18 +16,18 @@ def plot_psd(result: AcquisitionResult, output_file: str, axis: str = "xyz",
         print(f"Warning: Data integrity compromised, {result.skipped_samples} samples skipped.")
 
     # check Nyquist criterion
-    if result.config.data_rate.param_value < 2 * result.config.filter.param_value:
-        print(f"Warning: sample rate {result.config.data_rate.param_value} Hz is "
+    if result.config.sample_rate.param_value < 2 * result.config.filter.param_value:
+        print(f"Warning: sample rate {result.config.sample_rate.param_value} Hz is "
               f"not >= 2 * filter frequency {result.config.filter.param_value} Hz.")
     
     # check frequency range
     if freq_max is None:
-        freq_max = result.config.data_rate.param_value // 2
-    elif freq_max > result.config.data_rate.param_value // 2:
+        freq_max = result.config.sample_rate.param_value // 2
+    elif freq_max > result.config.sample_rate.param_value // 2:
         print(f"Warning: freq_max ({freq_max} Hz) is greater "
-              f"than 0.5 x sample rate ({result.config.data_rate.param_value} Hz). "
-              f"Limiting to {result.config.data_rate.param_value // 2} Hz.")
-        freq_max = result.config.data_rate.param_value // 2
+              f"than 0.5 x sample rate ({result.config.sample_rate.param_value} Hz). "
+              f"Limiting to {result.config.sample_rate.param_value // 2} Hz.")
+        freq_max = result.config.sample_rate.param_value // 2
 
     if freq_min >= freq_max:
         raise ValueError("freq_min must be less than freq_max.")
@@ -37,12 +37,12 @@ def plot_psd(result: AcquisitionResult, output_file: str, axis: str = "xyz",
     acc_z = np.array([s.acc_z for s in result.samples])
 
     # calculate segment length based on plot frequency range
-    nperseg = min(int((100 * result.config.data_rate.param_value) // (freq_max - freq_min)), len(acc_x))
+    nperseg = min(int((100 * result.config.sample_rate.param_value) // (freq_max - freq_min)), len(acc_x))
 
     plt.figure(figsize=(10, 8))  # Increase figure size. You can adjust the values as needed.
     for ax, acc, color in zip(['x', 'y', 'z'], [acc_x, acc_y, acc_z], ["red", "green", "blue"]):
         if ax in axis:
-            f, p_den = welch(acc, fs=result.config.data_rate.param_value, nperseg=nperseg, scaling="density")
+            f, p_den = welch(acc, fs=result.config.sample_rate.param_value, nperseg=nperseg, scaling="density")
             mask = (f >= freq_min) & (f <= freq_max)
             f = f[mask]
             p_den = p_den[mask]
@@ -75,7 +75,7 @@ def plot_psd(result: AcquisitionResult, output_file: str, axis: str = "xyz",
     plt.autoscale(enable=True, axis='y', tight=False)
     plt.savefig(output_file, dpi=200)
 
-def plot(result: AcquisitionResult, output_file: str, axis: str = "xyz",
+def plot(result: AcquisitionData, output_file: str, axis: str = "xyz",
          tstart: float = 0, tend: float = float("inf"), title=None) -> None:
     import numpy as np
     import matplotlib.pyplot as plt
@@ -92,9 +92,9 @@ def plot(result: AcquisitionResult, output_file: str, axis: str = "xyz",
 
     plt.figure(figsize=(18, 6))  # Increase figure size. You can adjust the values as needed.
 
-    t = np.linspace(0, len(acc_x) / result.config.data_rate.param_value, len(acc_x))
+    t = np.linspace(0, len(acc_x) / result.config.sample_rate.param_value, len(acc_x))
     if(tend == None):
-        tend = len(acc_x) / result.config.data_rate.param_value
+        tend = len(acc_x) / result.config.sample_rate.param_value
     mask = (t >= tstart) & (t <= tend)
     t = t[mask]
     for ax, acc, color in zip(['x', 'y', 'z'], [acc_x, acc_y, acc_z], ["red", "green", "blue"]):

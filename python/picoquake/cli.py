@@ -53,21 +53,24 @@ def _acquire(args):
     short_id: str = args.short_id
     out: str = args.out
     seconds: float = args.seconds
-    data_rate: float = args.data_rate
+    sample_rate: float = args.sample_rate
     filter: float = args.filter
     acc_range: float = args.acc_range
     gyro_range: float = args.gyro_range
     autostart: bool = args.autostart
-    overwrite: bool = args.overwrite
+    yes: bool = args.yes
     verbose: bool = args.verbose
 
     if verbose:
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
         logging.getLogger().addHandler(stream_handler)
+
+    if not sample_rate >= 2 * filter:
+        print("Warning: sample rate should be >= 2 * filter frequency.")
     
     # Check if the output file already exists
-    if os.path.isfile(out) and not overwrite:
+    if os.path.isfile(out) and not yes:
         usr = input(f"File {out} already exists. Overwrite? y/n: ")
         if usr.lower() != 'y':
             print("Exiting...")
@@ -86,18 +89,26 @@ def _acquire(args):
 
     # Configure device and acquire data
     try:
-        device.configure_approx(data_rate, filter, acc_range, gyro_range)
+        device.configure_approx(sample_rate, filter, acc_range, gyro_range)
         config = device.config
         print(f"Configured to: {config}")
+    except Exception as e:
+        logger.exception(e)
+        print(f"Error configuring device: {e}")
+        sys.exit(1)
+    
+    try:
         if not autostart:
             input("\nPress ENTER to start acquisition...\n")
         print("Acquiring...")
-        result = cast(AcquisitionResult, device.acquire(seconds))
+        data, exception = device.acquire(seconds)
         print("Done.")
-        if not result.integrity:
-            print(f"WARNING: Acquisition invalid, {result.skipped_samples} samples skipped.")
-        elif result.requested_samples != result.num_samples:
-            print(f"WARNING: Acquisition incomplete, requested {result.requested_samples} samples, got {result.num_samples}.")
+        data.to_csv(out)
+        path = os.path.abspath(out)
+        print(f"Data written to {path}")  
+        if exception is not None:
+            print("WARNING: Acquisition failed, saved data is incomplete.")
+            raise exception
     except KeyboardInterrupt:
         logger.info("Interrupted by user.")
         print("\nInterrupted by user.")
@@ -105,11 +116,7 @@ def _acquire(args):
     except Exception as e:
         logger.exception(e)
         print(f"Error: {e}")
-        sys.exit(1)
-    else:
-        result.to_csv(out)
-        path = os.path.abspath(out)
-        print(f"Data written to {path}")   
+        sys.exit(1)  
     finally:
         device.stop()
 
@@ -132,7 +139,7 @@ def _live_display(args):
         print(f"Error: {e}")
         sys.exit(1)
     try:   
-        device.configure(DataRate.hz_12_5, Filter.hz_42, AccRange.g_4, GyroRange.dps_250)
+        device.configure(SampleRate.hz_12_5, Filter.hz_42, AccRange.g_4, GyroRange.dps_250)
         device.start_continuos()
         while True:
             sample = device.read_last()
@@ -154,15 +161,15 @@ def _plot_psd(args):
     csv_path: str = args.csv_path
     output: str = args.output
     axis: str = args.axis
-    freq_min: float = args.freq_min
-    freq_max: float = args.freq_max
+    freq_min: float = args.fmin
+    freq_max: float = args.fmax
     peaks: bool = args.peaks
     title: str = args.title
 
     output = output if output != '.' else os.path.splitext(csv_path)[0] + "_fft.png"
 
     try:
-        result = AcquisitionResult.from_csv(csv_path)
+        result = AcquisitionData.from_csv(csv_path)
     except Exception as e:
         logger.exception(e)
         print(f"Error loading file: {e}")
@@ -182,14 +189,14 @@ def _plot(args):
     csv_path: str = args.csv_path
     output: str = args.output
     axis: str = args.axis
-    time_start: float = args.time_start
-    time_end: float = args.time_end
+    time_start: float = args.tstart
+    time_end: float = args.tend
     title: str = args.title
 
     output = output if output != '.' else os.path.splitext(csv_path)[0] + "_plot.png"
 
     try:
-        result = AcquisitionResult.from_csv(csv_path)
+        result = AcquisitionData.from_csv(csv_path)
     except Exception as e:
         logger.exception(e)
         print(f"Error loading file: {e}")
@@ -230,7 +237,7 @@ def _test(args):
         print(f"Error: {e}")
         sys.exit(1)
     try:
-        device.configure(DataRate.hz_12_5, Filter.hz_42, AccRange.g_4, GyroRange.dps_250)
+        device.configure(SampleRate.hz_12_5, Filter.hz_42, AccRange.g_4, GyroRange.dps_250)
         device.start_continuos()
         print("Point Z up...", end="", flush=True)
         while True:
@@ -270,10 +277,10 @@ def main():
     file_handler = logging.FileHandler(os.path.join(_get_log_path("picoquake"), "picoquake.log"), mode='a')
     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     logging.getLogger().addHandler(file_handler)
-    logging.getLogger().setLevel(logging.DEBUG)
     
     main_parser = argparse.ArgumentParser(description="PicoQuake CLI.")
     main_parser.add_argument("-v", "--version", action="version", version=f"picoquake {__version__}")
+    main_parser.add_argument("--debug", action="store_true", help="Set debug log verbosity.")
     subparsers = main_parser.add_subparsers(required=True, dest="command")
 
     # acquire
@@ -282,8 +289,8 @@ def main():
     acquire_parser.add_argument("out", help="The output CSV file to write the data to.")
     acquire_parser.add_argument("-s", "--seconds", type=float, default=2.0,
                                 help="Duration of the acquisition in seconds.")
-    acquire_parser.add_argument("-r", "--data_rate", type=float, default=200.0,
-                                help="Data rate in Hz. Range 12.5 - 4000 Hz. Closest available selected.")
+    acquire_parser.add_argument("-r", "--sample_rate", type=float, default=200.0,
+                                help="Sample rate in Hz. Range 12.5 - 4000 Hz. Closest available selected.")
     acquire_parser.add_argument("-f", "--filter", type=float, default=42.0,
                                 help="Filter frequency in Hz. Range 42 - 3979 Hz. Closest available selected.")
     acquire_parser.add_argument("-ar", "--acc_range", type=float, default=2.0,
@@ -292,10 +299,10 @@ def main():
                                 help="The gyroscope range in dps. Range 15.625 - 2000 dps. Closest available selected.")
     acquire_parser.add_argument("-a", "--autostart", action="store_true",
                                 help="Start acquisition without user confirmation.")
-    acquire_parser.add_argument("-x", "--overwrite", action="store_true",
-                                help="Overwrite is output file exists.")
+    acquire_parser.add_argument("-y", "--yes", action="store_true",
+                                help="Skip overwrite prompt.")
     acquire_parser.add_argument("-v", "--verbose", action="store_true",
-                                help="Enable verbose logging")
+                                help="Print log messages to console.")
     acquire_parser.set_defaults(func=_acquire)
 
     # display
@@ -320,8 +327,8 @@ def main():
     fftplot_parser.add_argument("csv_path", help="The CSV file containing the acquired data.")
     fftplot_parser.add_argument("output", help="The output file to save the plot to. '.' to save next to the data file.")
     fftplot_parser.add_argument("-a", "--axis", default="xyz", help="Axis to plot, must be 'x', 'y', 'z', or a combination")
-    fftplot_parser.add_argument("-fmin", "--freq_min", type=float, default=0.0, help="Minimum frequency to plot.")
-    fftplot_parser.add_argument("-fmax", "--freq_max", type=float, default=1000.0, help="Maximum frequency to plot.")
+    fftplot_parser.add_argument("--fmin", type=float, default=0.0, help="Minimum frequency to plot.")
+    fftplot_parser.add_argument("--fmax", type=float, default=1000.0, help="Maximum frequency to plot.")
     fftplot_parser.add_argument("--peaks", action="store_true", help="Annotate peaks on the plot.")
     fftplot_parser.add_argument("--title", help="Title of the plot.", default=None)
     fftplot_parser.set_defaults(func=_plot_psd)
@@ -331,13 +338,17 @@ def main():
     plot_parser.add_argument("csv_path", help="The CSV file containing the acquired data.")
     plot_parser.add_argument("output", help="The output file to save the plot to. '.' to save next to the data file.")
     plot_parser.add_argument("-a", "--axis", default="xyz", help="Axis to plot, must be 'x', 'y', 'z', or a combination")
-    plot_parser.add_argument("-tstart", "--time_start", type=float, default=0.0, help="Start time of the plot.")
-    plot_parser.add_argument("-tend", "--time_end", type=float, default=None, help="End time of the plot.")
+    plot_parser.add_argument("--tstart", type=float, default=0.0, help="Start time of the plot.")
+    plot_parser.add_argument("--tend", type=float, default=None, help="End time of the plot.")
     plot_parser.add_argument("--title", help="Title of the plot.", default=None)
     plot_parser.set_defaults(func=_plot)
 
     
     args = main_parser.parse_args()
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
     args.func(args)
     
 if __name__ == '__main__':

@@ -57,7 +57,7 @@ class ConfigEnum(Enum):
         return self.value[1]
 
 
-class DataRate(ConfigEnum):
+class SampleRate(ConfigEnum):
     hz_12_5 = 0, 12.5
     hz_25 = 1, 25.0
     hz_50 = 2, 50.0
@@ -155,13 +155,13 @@ class GyroRange(ConfigEnum):
 
 @dataclass
 class Config:
-    data_rate: DataRate
+    sample_rate: SampleRate
     filter: Filter
     acc_range: AccRange
     gyro_range: GyroRange
 
     def __str__(self):
-        return f"data_rate = {self.data_rate.param_value} Hz, " \
+        return f"sample_rate = {self.sample_rate.param_value} Hz, " \
                f"filter = {self.filter.param_value} Hz, " \
                f"acc_range = {self.acc_range.param_value} g, " \
                f"gyro_range = {self.gyro_range.param_value} dps"
