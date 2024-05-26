@@ -21,8 +21,8 @@ from .configuration import *
 from .data import *
 from .exceptions import *
 
-_VID = 0x2E8A
-_PID = 0xA
+VID = 0x2E8A
+PID = 0xA
 
 _HANDSHAKE_TIMEOUT = 5.0
 _STATUS_TIMEOUT = 2.0
@@ -289,7 +289,7 @@ class PicoQuake:
         ports = comports()
         for p in ports:
             self._logger.debug(f"Found port: {p.device}, pid: {p.pid}, vid: {p.vid}, sn: {p.serial_number}")
-            if p.vid == _VID and p.pid == _PID and p.serial_number:
+            if p.vid == VID and p.pid == PID and p.serial_number:
                 if DeviceInfo.unique_id_to_short_id(p.serial_number) == short_id.upper():
                     return p.device
         return None

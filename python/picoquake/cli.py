@@ -218,11 +218,34 @@ def _list_devices(args):
     all_ports = args.all
     ports = comports()
     for p in ports:
-        if p.vid == _VID and p.pid == _PID and p.serial_number:
+        if p.vid == VID and p.pid == PID and p.serial_number:
             short_id = DeviceInfo.unique_id_to_short_id(p.serial_number)
             print(f"PicoQuake {short_id}: {p.device}")
         elif all_ports:
             print(f"Unknown device: {p.device}, description: {p.description}")
+
+
+def _info(args):
+    short_id: str = args.short_id
+    try:
+        device = PicoQuake(short_id)
+    except DeviceNotFound:
+        print(f"Device with short_id {short_id} not found.")
+        sys.exit(1)
+    except Exception as e:
+        logger.exception(e)
+        print(f"Error: {e}")
+        sys.exit(1)
+    try:
+        info = device.device_info
+        print(info)
+    except Exception as e:
+        logger.exception(e)
+        print(f"Error: {e}")
+        sys.exit(1)
+    finally:
+        device.stop()
+
 
 def _test(args):
     tol = 0.1
@@ -316,6 +339,11 @@ def main():
     list_devices_parser = subparsers.add_parser("list", help="List connected PicoQuake devices.")
     list_devices_parser.add_argument("-a", "--all", action="store_true", help="List all serial ports.")
     list_devices_parser.set_defaults(func=_list_devices)
+
+    # device info
+    info_parser = subparsers.add_parser("info", help="Display device information.")
+    info_parser.add_argument("short_id", help="The 4 character ID of the device. Found on the label.")
+    info_parser.set_defaults(func=_info)
 
     # test
     test_parser = subparsers.add_parser("test", help="Test device.")
