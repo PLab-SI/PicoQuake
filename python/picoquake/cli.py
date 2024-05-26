@@ -218,7 +218,7 @@ def _list_devices(args):
     all_ports = args.all
     ports = comports()
     for p in ports:
-        if p.vid == VID and p.pid == PID and p.serial_number:
+        if p.vid == _VID and p.pid == _PID and p.serial_number:
             short_id = DeviceInfo.unique_id_to_short_id(p.serial_number)
             print(f"PicoQuake {short_id}: {p.device}")
         elif all_ports:
@@ -286,7 +286,7 @@ def main():
     # acquire
     acquire_parser = subparsers.add_parser("acquire", help="Acquire data from a PicoQuake device.")
     acquire_parser.add_argument("short_id", help="The 4 character ID of the device. Found on the label.")
-    acquire_parser.add_argument("out", help="The output CSV file to write the data to.")
+    acquire_parser.add_argument("out", help="The output CSV file.")
     acquire_parser.add_argument("-s", "--seconds", type=float, default=2.0,
                                 help="Duration of the acquisition in seconds.")
     acquire_parser.add_argument("-r", "--sample_rate", type=float, default=200.0,
@@ -296,7 +296,7 @@ def main():
     acquire_parser.add_argument("-ar", "--acc_range", type=float, default=2.0,
                                 help="Acceleration range in g. Range 2 - 16 g. Closest available selected.")
     acquire_parser.add_argument("-gr", "--gyro_range", type=float, default=250.0,
-                                help="The gyroscope range in dps. Range 15.625 - 2000 dps. Closest available selected.")
+                                help="Gyro range in dps. Range 15.625 - 2000 dps. Closest available selected.")
     acquire_parser.add_argument("-a", "--autostart", action="store_true",
                                 help="Start acquisition without user confirmation.")
     acquire_parser.add_argument("-y", "--yes", action="store_true",

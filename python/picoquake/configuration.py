@@ -5,6 +5,20 @@ from typing import TypeVar, Type, Union
 T = TypeVar('T', bound='ConfigEnum')
 
 class ConfigEnum(Enum):
+    """
+    Base class for configuration enums.
+    Each member has two elements: an index and a parameter value.
+    Parameter value can be either an integer or a float.
+
+    Attributes:
+        index: Index of the member.
+        param_value: Parameter value of the member.
+
+    Methods:
+        from_index: Return member with specified index.
+        from_param_value: Return member with specified parameter value.
+        find_closest: Return member with parameter value closest to specified value.
+    """
 
     def __new__(cls, *args):
         if not len(args) == 2:
@@ -19,6 +33,7 @@ class ConfigEnum(Enum):
 
     @classmethod
     def from_index(cls: Type[T], index: int) -> T:
+        """Return member with specified index."""
         for member in cls:
             if member.value[0] == index:
                 return member
@@ -26,6 +41,7 @@ class ConfigEnum(Enum):
 
     @classmethod
     def from_param_value(cls: Type[T], value: Union[float, int], tolerance: float = 1e-5) -> T:
+        """Return member with specified parameter value."""
         for member in cls:
             if isinstance(value, float):
                 if abs(member.value[1] - value) < tolerance:
@@ -37,6 +53,7 @@ class ConfigEnum(Enum):
     
     @classmethod
     def find_closest(cls: Type[T], value: Union[float, int]) -> T:
+        """Return member with parameter value closest to specified value."""
         if not list(cls):
                 raise ValueError("No members in the enum")
         closest = next(iter(cls))

@@ -1,3 +1,7 @@
+"""
+Data classes for storing device and acquisition data.
+"""
+
 from dataclasses import dataclass, field
 from enum import Enum
 from hashlib import blake2b
@@ -30,6 +34,18 @@ class PacketID(Enum):
 
 @dataclass
 class IMUSample:
+    """
+    Data class for storing a single IMU sample.
+
+    Attributes:
+        count: Sample count.
+        acc_x: Accelerometer X value.
+        acc_y: Accelerometer Y value.
+        acc_z: Accelerometer Z value.
+        gyro_x: Gyroscope X value.
+        gyro_y: Gyroscope Y value.
+        gyro_z: Gyroscope Z value.
+    """
     count: int
     acc_x: float
     acc_y: float
@@ -85,6 +101,25 @@ class DeviceInfo:
 
 @dataclass
 class AcquisitionData:
+    """
+    Data class for storing the complete acquisition result,
+    including IMU samples, device information, and acquisition configuration.
+
+    Attributes:
+        samples: List of IMU samples.
+        device: Device information.
+        config: Acquisition configuration.
+        start_time: Start time of the acquisition.
+        skipped_samples: Number of skipped samples due to acquisition issues.
+        csv_path: Path to the CSV file containing the data. Used if the data was loaded from a file.
+        duration: Duration of the acquisition in seconds.
+        num_samples: Number of samples in the acquisition.
+        integrity: Whether the acquisition has integrity (no skipped samples).
+    
+    Methods:
+        to_csv: Write the data to a CSV file.
+        from_csv: Load the data from a CSV file.
+    """
     samples: list[IMUSample]
     device: DeviceInfo
     config: Config
@@ -111,7 +146,8 @@ class AcquisitionData:
         else:
             return os.path.basename(self.csv_path)
     
-    def check_integrity(self) -> int:
+    def _check_integrity(self) -> int:
+        """Counts skipped samples."""
         last_count = self.samples[0].count
         skipped = 0
         for s in self.samples:
@@ -121,14 +157,15 @@ class AcquisitionData:
             last_count = s.count
         return skipped
     
-    def normalize_count(self):
+    def _normalize_count(self):
+        """Make the first sample count 0."""
         first = self.samples[0].count
         for s in self.samples:
             s.count -= first
     
     def __post_init__(self):
-        self.skipped_samples = self.check_integrity()
-        self.normalize_count()
+        self.skipped_samples = self._check_integrity()
+        self._normalize_count()
 
     def __str__(self) -> str:
         return (f"device = {self.device.short_id}, "
@@ -138,6 +175,12 @@ class AcquisitionData:
                 f"skipped = {self.skipped_samples}")
     
     def to_csv(self, filename: str):
+        """
+        Write the data to a CSV file.
+
+        Args:
+            filename: Path to the CSV file.
+        """
         metadata = f"# PLab PicoQuake Data\n" \
                f"# Time: {self.start_time.isoformat(sep=' ')}, Device: {self.device.short_id.upper()} ({self.device.unique_id})\n" \
                f"# Num. samples: {self.num_samples}, Duration: {self.duration} s\n" \
@@ -153,6 +196,18 @@ class AcquisitionData:
 
     @classmethod
     def from_csv(cls, path: str) -> 'AcquisitionData':
+        """
+        Load the data from a CSV file.
+
+        Args:
+            path: Path to the CSV file.
+
+        Returns:
+            AcquisitionData: Data loaded from the CSV file.
+
+        Raises:
+            ValueError: If an error occurs while parsing the CSV file.
+        """
         with open(path, "r") as f:
             reader = csv.reader(f)
             metadata = []

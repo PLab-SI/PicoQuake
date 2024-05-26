@@ -1,13 +1,45 @@
 site_name: PicoQuake
 
-repo_url: https://github.com/mrmp17/PicoQuake
-repo_name: mrmp17/PicoQuake
+repo_url: https://github.com/PLab-SI/PicoQuake
+repo_name: PLab-SI/PicoQuake
+
+nav:
+  - Home: index.md
+  - examples.md
+  - installation.md
+  - usage.md
+  - plotting.md
+  - cli.md
+  - Python API:
+    - python_api/interface.md
+    - python_api/data.md
+    - python_api/exceptions.md
 
 theme:
   name: material
   palette:
-    - scheme: slate
+    - scheme: default
       primary: blue grey
       accent: orange
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_root_heading: true
+            show_root_full_path: false
+            show_source: false
+            show_symbol_type_toc: true
+            show_symbol_type_heading: true
+            docstring_section_style: list
+
+markdown_extensions:
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - toc:
+      permalink: true
 
 copyright: Copyright &copy; 2024 PLab
