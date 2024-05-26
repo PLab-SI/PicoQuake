@@ -53,6 +53,16 @@ picoquake list [-h] [-a]
 
 - `-a`, `--all`: List all serial ports.
 
+#### info
+
+Display device information.
+
+```bash
+picoquake info [-h] short_id
+```
+
+- `short_id`: The 4 character ID of the device. Found on the label.
+
 #### test
 
 Test a device.

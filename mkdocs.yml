@@ -5,10 +5,13 @@ repo_name: PLab-SI/PicoQuake
 
 nav:
   - Home: index.md
-  - examples.md
+  - Example Use Cases:
+    - examples/trackpad.md
+    - examples/bldc.md
   - installation.md
   - usage.md
   - plotting.md
+  - fw_update.md
   - cli.md
   - Python API:
     - python_api/interface.md
@@ -37,8 +40,12 @@ plugins:
             docstring_section_style: list
 
 markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - md_in_html
   - pymdownx.superfences
   - pymdownx.highlight
+  - attr_list
   - toc:
       permalink: true
 
