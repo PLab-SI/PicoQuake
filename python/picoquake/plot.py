@@ -90,7 +90,7 @@ def plot(result: AcquisitionData, output_file: str, axis: str = "xyz",
     acc_y = np.array([s.acc_y for s in result.samples])
     acc_z = np.array([s.acc_z for s in result.samples])
 
-    plt.figure(figsize=(18, 6))  # Increase figure size. You can adjust the values as needed.
+    plt.figure(figsize=(10, 6))  # Increase figure size. You can adjust the values as needed.
 
     t = np.linspace(0, len(acc_x) / result.config.sample_rate.param_value, len(acc_x))
     if(tend == None):
@@ -103,9 +103,9 @@ def plot(result: AcquisitionData, output_file: str, axis: str = "xyz",
             plt.plot(t, acc, label=ax, linewidth=1.0, color=color)
 
     if title is not None:
-        plt.title(title, pad=40)
+        plt.title(title, pad=20)
     elif result.filename is not None:
-        plt.title(result.filename, pad=40)
+        plt.title(result.filename, pad=20)
     plt.xlabel("Time [s]")
     plt.ylabel("Acceleration [g]")
     plt.grid(True, "both")

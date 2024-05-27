@@ -1,10 +1,14 @@
+# PicoQuake
+
+Python library for the *PicoQuake* USB vibration sensor.
+
 # Installation
 
 ## Requirements
 
 - *Windows*, *Linux* or *macOS*
-- [*Python*](https://www.python.org/downloads/){:target="_blank"} *3.9* or higher
-- [*pip*](https://pip.pypa.io/en/stable/installation/){:target="_blank"}
+- [*Python*](https://www.python.org/downloads/) *3.9* or higher
+- [*pip*](https://pip.pypa.io/en/stable/installation/)
 
 ## Basic installation
 

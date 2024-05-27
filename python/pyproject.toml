@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "picoquake"
+version = "1.0.1"
+description = "PicoQuake USB vibration sensor library."
+requires-python = ">=3.9"
+readme = "README.md"
+authors = [
+    { name = "Nejc Planinsek", email = "nejc@plab.si" }
+]
+keywords = [
+    "picoquake",
+    "vibration",
+    "data acquisition",
+    "IMU",
+    "accelerometer",
+    "gyroscope"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+dependencies = [
+    "pyserial",
+    "protobuf",
+    "cobs",
+    "psutil"
+]
+
+[project.optional-dependencies]
+plot = [
+    "numpy",
+    "scipy",
+    "matplotlib"
+]
+
+[project.urls]
+Repository = "https://github.com/PLab-SI/PicoQuake"
+Documentation = "https://plab-si.github.io/PicoQuake/"
+
+[project.scripts]
+picoquake = "picoquake.cli:main"
