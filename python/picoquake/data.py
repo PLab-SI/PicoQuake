@@ -186,7 +186,7 @@ class AcquisitionData:
                f"# Num. samples: {self.num_samples}, Duration: {self.duration} s\n" \
                f"# Config: {self.config}\n" \
                f"# Integrity: {self.integrity}, Skipped samples: {self.skipped_samples}\n"
-        with open(filename, "w") as f:
+        with open(filename, "w", newline="") as f:
             f.write(metadata)
             writer = csv.writer(f)
             writer.writerow(["count", "a_x", "a_y", "a_z", "g_x", "g_y", "g_z"])
