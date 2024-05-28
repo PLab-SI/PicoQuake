@@ -14,9 +14,11 @@ nav:
   - fw_update.md
   - cli.md
   - Python API:
-    - python_api/interface.md
-    - python_api/data.md
-    - python_api/exceptions.md
+    - Examples: python_api/examples.md
+    - Reference:
+      - python_api/interface.md
+      - python_api/data.md
+      - python_api/exceptions.md
 
 theme:
   name: material
