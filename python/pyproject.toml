@@ -32,8 +32,7 @@ classifiers = [
 dependencies = [
     "pyserial~=3.5",
     "protobuf~=3.20",
-    "cobs~=1.2",
-    "psutil~=5.8"
+    "cobs~=1.2"
 ]
 
 [project.optional-dependencies]

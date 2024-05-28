@@ -12,7 +12,6 @@ from typing import List, Optional, cast, Tuple
 import logging
 import struct
 from datetime import datetime
-import psutil
 
 from cobs import cobs
 
@@ -191,9 +190,6 @@ class PicoQuake:
         if seconds > 0:
             n_samples = int(seconds * self.config.sample_rate.param_value)
 
-        process = psutil.Process()
-        process.cpu_percent()
-
         max_duration = n_samples / self.config.sample_rate.param_value * 1.2 + 1.0
         exception: Optional[Exception] = None
 
@@ -221,8 +217,7 @@ class PicoQuake:
                 break
             sleep(0.001)
         stop_t = time()
-        self._logger.info(f"Acquisition stopped. Took: {stop_t - start_t:.1f}s. " \
-                    f"Average CPU utilization (this process): {process.cpu_percent():.1f}%")
+        self._logger.info(f"Acquisition stopped. Took: {stop_t - start_t:.1f}s.")
         self._logger.info(f"Received {len(self._sample_list)} samples")
 
         data = AcquisitionData(samples=self._sample_list[0:n_samples],
