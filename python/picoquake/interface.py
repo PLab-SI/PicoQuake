@@ -421,6 +421,8 @@ class PicoQuake:
             ser.reset_output_buffer()
         except SerialException:
             raise ConnectionError(f"Could not connect to port {self._port}")
+        except PermissionError:
+            raise ConnectionError(f"Permission denied on port {self._port}. Check user permissions.")
         in_buffer = bytearray()
         receiving_packet = False
         try:
