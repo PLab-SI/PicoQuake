@@ -166,7 +166,7 @@ def _plot_psd(args):
     peaks: bool = args.peaks
     title: str = args.title
 
-    output = output if output != '.' else os.path.splitext(csv_path)[0] + "_fft.png"
+    output = output if output != '.' else os.path.splitext(csv_path)[0] + "_psd.png"
 
     try:
         result = AcquisitionData.from_csv(csv_path)
