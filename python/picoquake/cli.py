@@ -185,6 +185,34 @@ def _plot_psd(args):
         print(f"Error: {e}")
         sys.exit(1)
 
+def _plot_fft(args):
+    csv_path: str = args.csv_path
+    output: str = args.output
+    axis: str = args.axis
+    freq_min: float = args.fmin
+    freq_max: float = args.fmax
+    peaks: bool = args.peaks
+    title: str = args.title
+
+    output = output if output != '.' else os.path.splitext(csv_path)[0] + "_fft.png"
+
+    try:
+        result = AcquisitionData.from_csv(csv_path)
+    except Exception as e:
+        logger.exception(e)
+        print(f"Error loading file: {e}")
+        sys.exit(1)
+    try:
+        plot_fft(result, output, axis, freq_min, freq_max, peaks, title)
+        print(f"Plot saved to {output}")
+    except ModuleNotFoundError:
+        print("Plotting not supported. To enable install with 'pip install picoquake[plot]'.")
+        sys.exit(1)
+    except Exception as e:
+        logger.exception(e)
+        print(f"Error: {e}")
+        sys.exit(1)
+
 def _plot(args):
     csv_path: str = args.csv_path
     output: str = args.output
@@ -360,6 +388,17 @@ def main():
     fftplot_parser.add_argument("--peaks", action="store_true", help="Annotate peaks on the plot.")
     fftplot_parser.add_argument("--title", help="Title of the plot.", default=None)
     fftplot_parser.set_defaults(func=_plot_psd)
+
+    # plot FFT
+    fftplot_parser = subparsers.add_parser("plot_fft", help="Plot Fast Fourier Transform of acquired data.")
+    fftplot_parser.add_argument("csv_path", help="The CSV file containing the acquired data.")
+    fftplot_parser.add_argument("output", help="The output file to save the plot to. '.' to save next to the data file.")
+    fftplot_parser.add_argument("-a", "--axis", default="xyz", help="Axis to plot, must be 'x', 'y', 'z', or a combination")
+    fftplot_parser.add_argument("--fmin", type=float, default=0.0, help="Minimum frequency to plot.")
+    fftplot_parser.add_argument("--fmax", type=float, default=1000.0, help="Maximum frequency to plot.")
+    fftplot_parser.add_argument("--peaks", action="store_true", help="Annotate peaks on the plot.")
+    fftplot_parser.add_argument("--title", help="Title of the plot.", default=None)
+    fftplot_parser.set_defaults(func=_plot_fft)
 
     # plot
     plot_parser = subparsers.add_parser("plot", help="Plot acquired data (time series).")

@@ -42,3 +42,28 @@ For more information about the command, see [CLI reference](cli.md#plot_psd).
 
     For vibration data, the PSD is measured in units of g²/Hz. This unit allows for the comparison and overlay of random data regardless of the spectral resolution used in measurement.
 
+## Plot Fast Fourier Transform (FFT)
+
+Plot Fast Fourier Transform (FFT) data from a CSV file.
+
+```bash
+picoquake plot_fft <csv_path> <output>
+```
+
+![PSD plot example](assets/plot_example_fft.png)
+
+You can specify the frequency range to plot using the `--fmin` and `--fmax` arguments.
+The axes can be selected using the `-xyz` flag. Input only the desired axes in any order.
+To annotate peaks, use the `--peaks` flag.
+
+For more information about the command, see [CLI reference](cli.md#plot_fft).
+
+!!! note
+    FFT plot ***does not*** filter out the DC component of the signal.
+
+??? info "Fast Fourier Transform (FFT)"
+
+    Fast Fourier Transform (FFT) is an algorithm that computes the Discrete Fourier Transform (DFT). It's commonly used to analyze the frequency content of a signal. 
+
+    For vibration data, the FFT is measured in units of g. FFT amplitudes between data sets of different lengths (number of samples) are ***not*** directly comparable. This is due to FFT returning the absolute amplitude of frequency components, whose spectral widths are defined by the number of samples used to compute the FFT.
+

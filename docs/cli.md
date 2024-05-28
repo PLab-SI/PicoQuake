@@ -73,6 +73,21 @@ picoquake test [-h] short_id
 
 - `short_id`: The 4 character ID of the device. Found on the label.
 
+#### plot
+
+Plot acquired data (time series).
+
+```bash
+picoquake plot [-h] [-a AXIS] [--tstart TSTART] [--tend TEND] [--title TITLE] csv_path output
+```
+
+- `csv_path`: The CSV file containing the acquired data.
+- `output`: The output file to save the plot to. '.' to save next to the data file.
+- `-a`, `--axis`: Axis to plot, must be 'x', 'y', 'z', or a combination (default: xyz).
+- `--tstart`: Start time of the plot (default: 0.0).
+- `--tend`: End time of the plot (default: None).
+- `--title`: Title of the plot (default: None).
+
 #### plot_psd
 
 Plot Power Spectral Density of acquired data.
@@ -89,17 +104,18 @@ picoquake plot_psd [-h] [-a AXIS] [--fmin FMIN] [--fmax FMAX] [--peaks] [--title
 - `--peaks`: Annotate peaks on the plot.
 - `--title`: Title of the plot (default: None).
 
-#### plot
+#### plot_fft
 
-Plot acquired data (time series).
+Plot Fast Fourier Transform of acquired data.
 
 ```bash
-picoquake plot [-h] [-a AXIS] [--tstart TSTART] [--tend TEND] [--title TITLE] csv_path output
+picoquake plot_fft [-h] [-a AXIS] [--fmin FMIN] [--fmax FMAX] [--peaks] [--title TITLE] csv_path output
 ```
 
 - `csv_path`: The CSV file containing the acquired data.
 - `output`: The output file to save the plot to. '.' to save next to the data file.
 - `-a`, `--axis`: Axis to plot, must be 'x', 'y', 'z', or a combination (default: xyz).
-- `--tstart`: Start time of the plot (default: 0.0).
-- `--tend`: End time of the plot (default: None).
+- `--fmin`: Minimum frequency to plot (default: 0.0).
+- `--fmax`: Maximum frequency to plot (default: 1000.0).
+- `--peaks`: Annotate peaks on the plot.
 - `--title`: Title of the plot (default: None).
