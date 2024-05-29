@@ -1,5 +1,6 @@
 from typing import cast
 import logging
+from logging.handlers import RotatingFileHandler
 from serial.tools.list_ports import comports
 import argparse
 import sys
@@ -9,6 +10,7 @@ import platform
 from . import __version__
 from .interface import *
 from .plot import *
+
 
 logger = logging.getLogger(__name__)
 
@@ -319,10 +321,6 @@ def _test(args):
 
 
 def main():
-    file_handler = logging.FileHandler(os.path.join(_get_log_path("picoquake"), "picoquake.log"), mode='a')
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    logging.getLogger().addHandler(file_handler)
-    
     main_parser = argparse.ArgumentParser(description="PicoQuake CLI.")
     main_parser.add_argument("-v", "--version", action="version", version=f"picoquake {__version__}")
     main_parser.add_argument("--verbose", action="store_true", help="Print log messages to console.")
@@ -405,6 +403,12 @@ def main():
 
     
     args = main_parser.parse_args()
+
+    # logging
+    log_path = os.path.join(_get_log_path("picoquake"), "picoquake.log")
+    file_handler =RotatingFileHandler(log_path, mode='a', maxBytes=15*1024*1024, backupCount=5)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(file_handler)
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
     else:
@@ -413,6 +417,7 @@ def main():
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
         logging.getLogger().addHandler(stream_handler)
+    
     args.func(args)
     
 if __name__ == '__main__':
