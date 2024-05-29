@@ -33,7 +33,7 @@ typedef struct ImuSendStruct {
 //
 
 
-static constexpr char FIRMWARE_VERSION[] =  "0.1.2";
+static constexpr char FIRMWARE_VERSION[] =  "1.0.0";
 
 // LED on when SPI transfer ongoing or LED on when state sampling
 // #define LED_ON_SPI_TRANSFER_DEBUG
@@ -90,7 +90,7 @@ volatile uint32_t buff_full_sample_missed_count = 0;
 
 ICM42688P icm(&SPI, cs, spi_clk_hz, int1, int2);
 // sample count is counted when getting data from ICM.
-// Any data loss (full queue, USB connectio, etc) will result in non-incremental sample counts
+// Any data loss (full queue, USB connection, etc) will result in non-incremental sample counts
 // count is reset when starting sampling
 volatile uint64_t sample_count = 0;
 
@@ -333,8 +333,6 @@ void HandleCommand(Command cmd){
     default:
       break;
   }
-  
-
 }
 
 void SendStatus(){
@@ -369,7 +367,6 @@ void SendStatus(){
 
   // Send
   Serial.write(out_status_buffer, out_packet_len);
-
 }
 
 
@@ -389,7 +386,6 @@ void SendIMUData() {
   pb_encode(&nanopb_stream, IMUData_fields, &pb_imu_data);
   size_t nanopb_size = nanopb_stream.bytes_written;
 
-
   // COBS
   cobs_encode_result cobs_result = cobs_encode(out_buffer + 2, 
       sizeof(out_buffer) - 3, &DataToSend, sizeof(DataToSend));
@@ -403,7 +399,6 @@ void SendIMUData() {
 
   // Send
   Serial.write(out_buffer, out_packet_len);
-  // digitalWrite(usr_led, LOW);
 }
 
 
@@ -413,45 +408,34 @@ void ParseIncoming() {
   static size_t buf_index = 0;
 
   while (Serial.available()) {
-    // digitalWrite(usr_led, HIGH);
     uint8_t byte = Serial.read();
 
     if (byte == 0x00 && buf_index == 0) { //start byte 0x00
-      // digitalWrite(usr_led, HIGH);
       // start byte detected, increment buffer index
       buf_index++;
       return;
     }
     if(byte == 0x00 && buf_index == 1){
-      // digitalWrite(usr_led, HIGH);
       // two 0x00 in a row. first was incorrectly interpreted as start byte but was actually end byte. This byte is now start, reset index to 1
       // tldr: if multiple 0x00 in a row, last one is taken as start byte
       buf_index = 0;
       return;
     }
     if(byte == 0x00 && buf_index > 1){ //end byte 0x00
-      // digitalWrite(usr_led, HIGH);
       // end byte detected, process the buffer
       uint8_t packet_id = incoming_buffer[1];
-      if(packet_id == 0x04){
-        // digitalWrite(usr_led, HIGH);
-      }
       //decode COBS
       cobs_decode_result result = cobs_decode(incoming_cobs_buffer, sizeof(incoming_cobs_buffer), incoming_buffer+2, buf_index-2);
       if(result.status == COBS_DECODE_OK){
-        // digitalWrite(usr_led, HIGH);
         // Use nanopb to decode the message
         pb_istream_t stream = pb_istream_from_buffer(incoming_cobs_buffer, result.out_len);
         //switch to decode different packet types (not needed for now, only command is received)
-        // digitalWrite(usr_led, HIGH);
         switch(packet_id){
           case command_id:{ //namespace brackets to be able to initialize msg
-            // digitalWrite(usr_led, HIGH);
             Command msg = Command_init_zero;
             if (pb_decode(&stream, Command_fields, &msg)) {
               // Handle the decoded message
               HandleCommand(msg);
-              // digitalWrite(usr_led, HIGH);
             }
             else {
               // Handle nanopb the error
@@ -490,11 +474,10 @@ void setup() {
   #endif
   // TODO: disable interrupts before this
   flash_get_unique_id(flash_unique_id);
-  // set_sys_clock_khz(270000, true);
 
   raw_data_q = xQueueCreate(kSampleQueueSize, sizeof(ImuSendStruct));
 
-  //set INT1 as input for data ready interrupt
+  // set INT1 as input for data ready interrupt
   pinMode(int1, INPUT);
   pinMode(usr_led, OUTPUT);
   
@@ -507,10 +490,10 @@ void setup() {
   
   DEBUG_PRINTF("ID read OK\r\n");
 
-  //print firmware version
+  // print firmware version
   DEBUG_PRINTF("Firmware version: %s\r\n", FIRMWARE_VERSION);
 
-  //print uid
+  // print uid
   Serial1.print("UID: ");
   for(int i = 0; i < 8; i++){
     Serial1.print(flash_unique_id[i], HEX);
@@ -520,10 +503,9 @@ void setup() {
   SPI.setRX(spi_miso);
   SPI.setTX(spi_mosi);
   SPI.setSCK(spi_sck);
-  // // SPI.setCS(cs);
   SPI.begin();
 
-  //begin ICM42688P
+  // begin ICM42688P
   if(!icm.Begin()){
     global_error = Error::SENSOR_COMMS_ERROR;
     DEBUG_PRINTF("ICM42688P comms error! WHOAMI wrong!\r\n");
@@ -541,12 +523,6 @@ void setup() {
   SetupICM();
   DEBUG_PRINTF("ICM42688P setup OK!\r\n");
 
-  
-  // StartSampling(ICM42688P::OutputDataRate::RATE_4K, ICM42688P::AccelFullScale::RANGE_16G, ICM42688P::GyroFullScale::RANGE_2000DPS, filter_config::f_126hz);
-
-  //setup interrupt on INT1 pin
-  // attachInterrupt(int1, DataReadyInterrupt, RISING);
-
   digitalWrite(usr_led, HIGH);
   delay(100);
   digitalWrite(usr_led, LOW);
@@ -557,24 +533,12 @@ void setup() {
 
 
 void setup1() {
-  // vTaskDelete(NULL);
   delay(6000);
 }
 
 
 void loop() {
-  // // turn on LED when State::SAMPLING unless debug LED mode defined (on while SPI transfer)
-  // #ifndef LED_ON_SPI_TRANSFER_DEBUG
-  // static State last_state = State::IDLE;
-  // if(global_state == State::SAMPLING && last_state == State::IDLE){
-  //   last_state = State::SAMPLING;
-  //   digitalWrite(usr_led, HIGH);
-  // }
-  // else if(global_state == State::IDLE && last_state == State::SAMPLING){
-  //   last_state = State::IDLE;
-  //   digitalWrite(usr_led, LOW);
-  // }
-  // #endif
+  // nothing to do
 }
 
 // all time consuming code is in loop1. loop1 is executed on core 1, which is free, core0 is busy with arduino stuff, USB comms, etc.
