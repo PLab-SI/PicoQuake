@@ -3,13 +3,14 @@
 ## Usage
 
 ```bash
-picoquake [-h] [-v] [--debug] {acquire,display,list,test,plot_psd,plot} ...
+picoquake [-h] [-v] [--verbose] [--debug] {acquire,display,list,test,plot_psd,plot} ...
 ```
 
 ### Global Options
 
 - `-v`, `--version`: Show the version of the CLI.
-- `--debug`: Set debug log verbosity.
+- `--debug`: Set log level to debug.
+- `--verbose`: Print log messages to console.
 
 ### Commands
 
@@ -18,7 +19,7 @@ picoquake [-h] [-v] [--debug] {acquire,display,list,test,plot_psd,plot} ...
 Acquire data from a PicoQuake device.
 
 ```bash
-picoquake acquire [-h] [-s SECONDS] [-r SAMPLE_RATE] [-f FILTER] [-ar ACC_RANGE] [-gr GYRO_RANGE] [-a] [-y] [-v] short_id out
+picoquake acquire [-h] [-s SECONDS] [-r SAMPLE_RATE] [-f FILTER] [-ar ACC_RANGE] [-gr GYRO_RANGE] [-a] [-y] short_id out
 ```
 
 - `short_id`: The 4 character ID of the device. Found on the label.
@@ -30,7 +31,6 @@ picoquake acquire [-h] [-s SECONDS] [-r SAMPLE_RATE] [-f FILTER] [-ar ACC_RANGE]
 - `-gr`, `--gyro_range`: Gyro range in dps. Range 15.625 - 2000 dps. Closest available selected (default: 250.0).
 - `-a`, `--autostart`: Start acquisition without user confirmation.
 - `-y`, `--yes`: Skip overwrite prompt.
-- `-v`, `--verbose`: Print log messages to console.
 
 #### display
 

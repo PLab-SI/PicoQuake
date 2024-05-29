@@ -59,12 +59,6 @@ def _acquire(args):
     gyro_range: float = args.gyro_range
     autostart: bool = args.autostart
     yes: bool = args.yes
-    verbose: bool = args.verbose
-
-    if verbose:
-        stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
-        logging.getLogger().addHandler(stream_handler)
 
     if not sample_rate >= 2 * filter:
         print("Warning: sample rate should be >= 2 * filter frequency.")
@@ -331,7 +325,8 @@ def main():
     
     main_parser = argparse.ArgumentParser(description="PicoQuake CLI.")
     main_parser.add_argument("-v", "--version", action="version", version=f"picoquake {__version__}")
-    main_parser.add_argument("--debug", action="store_true", help="Set debug log verbosity.")
+    main_parser.add_argument("--verbose", action="store_true", help="Print log messages to console.")
+    main_parser.add_argument("--debug", action="store_true", help="Set log level to debug.")
     subparsers = main_parser.add_subparsers(required=True, dest="command")
 
     # acquire
@@ -352,8 +347,6 @@ def main():
                                 help="Start acquisition without user confirmation.")
     acquire_parser.add_argument("-y", "--yes", action="store_true",
                                 help="Skip overwrite prompt.")
-    acquire_parser.add_argument("-v", "--verbose", action="store_true",
-                                help="Print log messages to console.")
     acquire_parser.set_defaults(func=_acquire)
 
     # display
@@ -416,6 +409,10 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
     else:
         logging.getLogger().setLevel(logging.INFO)
+    if args.verbose:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+        logging.getLogger().addHandler(stream_handler)
     args.func(args)
     
 if __name__ == '__main__':
