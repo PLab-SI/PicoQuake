@@ -13,7 +13,7 @@
 
 <br>
 
-![PicoQuake](assets/IMG_1788.jpeg)
+![PicoQuake](docs/assets/IMG_1788.jpeg)
 
 ---
 
