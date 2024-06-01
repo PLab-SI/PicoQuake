@@ -26,6 +26,8 @@ theme:
     - scheme: default
       primary: blue grey
       accent: orange
+  logo: assets/axes_symbol_round.svg
+  favicon: assets/axes_symbol_round.svg
 
 plugins:
   - search
