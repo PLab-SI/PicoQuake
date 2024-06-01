@@ -44,6 +44,6 @@
 
 ## Where to get
 
-You can buy *PicoQuake* on [*Tindie*](https://www.tindie.com/products/34749/){:target="_blank"}.
+You can buy *PicoQuake* on [*Tindie*](https://www.tindie.com/products/34749/).
 
 <a href="https://www.tindie.com/products/34749/"><img src="https://d2ss6ovg47m0r5.cloudfront.net/badges/tindie-mediums.png" alt="I sell on Tindie" width="150" height="78"></a>

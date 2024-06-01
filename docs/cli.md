@@ -65,10 +65,20 @@ picoquake info [-h] short_id
 
 #### test
 
-Test a device.
+Test device.
 
 ```bash
 picoquake test [-h] short_id
+```
+
+- `short_id`: The 4 character ID of the device. Found on the label.
+
+#### bootsel
+
+Put device in BOOTSEL mode.
+
+```bash
+picoquake bootsel [-h] short_id
 ```
 
 - `short_id`: The 4 character ID of the device. Found on the label.
