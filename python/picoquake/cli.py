@@ -241,12 +241,16 @@ def _plot(args):
 def _list_devices(args):
     all_ports = args.all
     ports = comports()
+    devices = []
     for p in ports:
         if p.vid == VID and p.pid == PID and p.serial_number:
             short_id = DeviceInfo.unique_id_to_short_id(p.serial_number)
+            devices.append((short_id, p))
             print(f"PicoQuake {short_id}: {p.device}")
         elif all_ports:
             print(f"Unknown device: {p.device}, description: {p.description}")
+    if not devices:
+        print("No PicoQuake devices found.")
 
 
 def _info(args):
