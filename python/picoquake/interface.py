@@ -7,11 +7,12 @@ from serial import Serial, SerialException
 from serial.tools.list_ports import comports
 from queue import Empty, Queue
 from time import sleep, time
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from typing import List, Optional, cast, Tuple
 import logging
 import struct
 from datetime import datetime
+from collections import deque
 
 from cobs import cobs
 
@@ -26,7 +27,8 @@ PID = 0xA
 _HANDSHAKE_TIMEOUT = 5.0
 _STATUS_TIMEOUT = 2.0
 _SAMPLE_START_TIMEOUT = 1.0
-_READ_LAST_TIMEOUT = 1.0
+
+_LEN_DEQUE = 1_000_000
 
 
 def _handle_exceptions(func):
@@ -98,8 +100,7 @@ class PicoQuake:
         self._continuos_mode = False
         self._acquire_n_samples = 0
         self._is_sampling = False
-        self._sample_list: List[IMUSample] = []
-        self._last_sample: Optional[IMUSample] = None
+        self._sample_deque: deque = deque()
 
         self._out_packet_queue = Queue()
         self._in_message_queue = Queue()
@@ -107,6 +108,7 @@ class PicoQuake:
         
         self._serial_thread = Thread(target=self._serial_worker, daemon=True)
         self._handler_thread = Thread(target=self._handler, daemon=True)
+        self._lock = Lock()
 
         self._device_status = Status(State.IDLE, 0, 0, 0)
         self._last_status_time = time()
@@ -194,6 +196,7 @@ class PicoQuake:
         exception: Optional[Exception] = None
 
         self._logger.info(f"Acquiring {n_samples} samples, max expected duration: {max_duration:.1f}s")
+        self._sample_deque = deque(maxlen=n_samples * 2)
         self._acquire_n_samples = n_samples
         self._start_sampling(n_samples)
         # wait for sampling to start
@@ -217,17 +220,18 @@ class PicoQuake:
                 break
             sleep(0.001)
         stop_t = time()
+        samples = list(self._sample_deque)
         self._logger.info(f"Acquisition stopped. Took: {stop_t - start_t:.1f}s.")
-        self._logger.info(f"Received {len(self._sample_list)} samples")
+        self._logger.info(f"Received {len(samples)} samples")
 
-        data = AcquisitionData(samples=self._sample_list[0:n_samples],
+        data = AcquisitionData(samples=samples[0:n_samples],
                                device=cast(DeviceInfo, self.device_info),
                                config=self.config,
                                start_time=datetime.fromtimestamp(start_t))
 
         if exception is None:
-            if len(self._sample_list) < n_samples:
-                self._logger.warning(f"Expected {n_samples} samples, received {len(self._sample_list)}")
+            if len(samples) < n_samples:
+                self._logger.warning(f"Expected {n_samples} samples, received {len(samples)}")
                 exception = ConnectionError("Not all samples received")
             elif not data._check_integrity:
                 self._logger.warning(f"Data integrity compromised, {data.skipped_samples} samples skipped")
@@ -239,6 +243,7 @@ class PicoQuake:
         Starts the device in continuos mode. Samples can be read using `read_last()`.
         """
         self._continuos_mode = True
+        self._sample_deque = deque(maxlen=_LEN_DEQUE)
         self._start_sampling()
         self._logger.info("Continuos mode started")
 
@@ -248,34 +253,70 @@ class PicoQuake:
         """
         self._continuos_mode = False
         self._stop_sampling()
-        self._last_sample = None
         self._logger.info("Continuos mode stopped")
 
-    def read_last(self) -> IMUSample:
+    def read(self, num: int=1, timeout: Optional[float]=None) -> List[IMUSample]:
         """
-        Reads the last sample received in continuos mode.
+        Reads the specified number of samples received in continuos mode.
+        Samples are returned in the same order as they were received.
+        If timeout is None, blocks until the specified number of samples are received.
 
+        Args:
+            num: The number of samples to read.
+            timeout: The maximum time to wait for the samples.
         Returns:
-            The latest sample performed on device.
+            List of samples. Might be less than `num` if timeout is set.
 
         Raises:
             RuntimeError: If continuos mode is not started.
-            ConnectionError: If no samples are received.
+        """
+        if not self._continuos_mode:
+            raise RuntimeError("Continuos mode not started")
+        start_time = time()
+        while len(self._sample_deque) < num:
+            if timeout is not None:
+                if time() - start_time > timeout:
+                    break
+            if self._exception is not None:
+                raise self._exception
+            sleep(0.001)
+        samples = []
+        with self._lock:
+            num_ret = min(num, len(self._sample_deque))
+            for _ in range(num_ret):
+                samples.append(self._sample_deque.popleft())
+        return samples
+
+    def read_last(self, timeout: Optional[float]=None) -> Optional[IMUSample]:
+        """
+        Reads the last sample received in continuos mode.
+        If timeout is None, blocks until a sample is received.
+
+        Args:
+            timeout: The maximum time to wait for the sample.
+
+        Returns:
+            The latest sample received.
+
+        Raises:
+            RuntimeError: If continuos mode is not started.
         """       
         if not self._continuos_mode:
             raise RuntimeError("Continuos mode not started")
 
         start_time = time()
-        while self._last_sample is None:
-            if time() - start_time > _READ_LAST_TIMEOUT:
-                if self._exception is not None:
-                    raise self._exception
-                else:
-                    raise ConnectionError("No samples received")
+        while len(self._sample_deque) < 1:
+            if timeout is not None:
+                if time() - start_time > timeout:
+                    break
+            if self._exception is not None:
+                raise self._exception
             sleep(0.001)
-        if self._exception is not None:
-            raise self._exception
-        return self._last_sample
+        with self._lock:
+            if len(self._sample_deque) > 0:
+                return self._sample_deque.pop()
+            else:
+                return None
     
     def reboot_to_bootsel(self):
         """
@@ -322,8 +363,6 @@ class PicoQuake:
                 If 0, the device will sample continuously.
         """
         self._logger.debug("Starting sampling...")
-        self._sample_list = []
-        self._last_sample = None
         self._send_command(CommandID.START_SAMPLING, self.config, num_samples)
         self._is_sampling = True
 
@@ -384,11 +423,7 @@ class PicoQuake:
                 pass
             else:
                 if isinstance(msg, IMUSample):
-                    imu_data = msg
-                    if self._continuos_mode:
-                        self._last_sample = imu_data
-                    else:
-                        self._sample_list.append(imu_data)
+                    self._sample_deque.append(msg)
                 elif isinstance(msg, messages_pb2.Status):
                     status = Status(State(msg.state), msg.temperature,
                                     msg.missed_samples, msg.error_code)
