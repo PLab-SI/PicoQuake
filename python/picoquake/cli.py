@@ -320,6 +320,26 @@ def _test(args):
         device.stop()
 
 
+def _reboot_to_bootsel(args):
+    short_id: str = args.short_id
+    try:
+        device = PicoQuake(short_id)
+    except DeviceNotFound:
+        print(f"Device with short_id {short_id} not found.")
+        sys.exit(1)
+    except Exception as e:
+        logger.exception(e)
+        print(f"Error: {e}")
+        sys.exit(1)
+    try:
+        device.reboot_to_bootsel()
+        print("Device rebooted to BOOTSEL.")
+    except Exception as e:
+        logger.exception(e)
+        print(f"Error: {e}")
+        sys.exit(1)
+
+
 def main():
     main_parser = argparse.ArgumentParser(description="PicoQuake CLI.")
     main_parser.add_argument("-v", "--version", action="version", version=f"picoquake {__version__}")
@@ -369,6 +389,11 @@ def main():
     test_parser.add_argument("short_id", help="The 4 character ID of the device. Found on the label.")
     test_parser.set_defaults(func=_test)
 
+    # reboot to bootsel
+    reboot_bootsel = subparsers.add_parser("bootsel", help="Reboot device to BOOTSEL.")
+    reboot_bootsel.add_argument("short_id", help="The 4 character ID of the device. Found on the label.")
+    reboot_bootsel.set_defaults(func=_reboot_to_bootsel)
+
     # plot PSD
     fftplot_parser = subparsers.add_parser("plot_psd", help="Plot Power Spectral Density of acquired data.")
     fftplot_parser.add_argument("csv_path", help="The CSV file containing the acquired data.")
@@ -401,7 +426,6 @@ def main():
     plot_parser.add_argument("--title", help="Title of the plot.", default=None)
     plot_parser.set_defaults(func=_plot)
 
-    
     args = main_parser.parse_args()
 
     # logging

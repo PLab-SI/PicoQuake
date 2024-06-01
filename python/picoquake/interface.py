@@ -276,6 +276,17 @@ class PicoQuake:
         if self._exception is not None:
             raise self._exception
         return self._last_sample
+    
+    def reboot_to_bootsel(self):
+        """
+        Reboots the device to BOOTSEL mode.
+        """
+        if self._started:
+            self.stop()
+        self._logger.info("Rebooting to BOOTSEL...")
+        ser = Serial(self._port, 1200, timeout=0.1)
+        sleep(0.1)
+        ser.close()
 
     def _find_port(self, short_id: str) -> Optional[str]:
         """
