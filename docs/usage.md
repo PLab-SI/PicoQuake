@@ -10,7 +10,7 @@ For more demanding applications, it's recommended to design a custom 3D printed 
 Using double sided tape is fine, but it might dampen higher frequency vibrations.
 
 !!! tip "Axes orientation"
-    Orientation of the axes is marked on the device. Make note of is so you can later interpret the data correctly.
+    Orientation of the axes is marked on the device. Make note of it so you can later interpret the data correctly.
 
 !!! note "Small objects"
     Measuring vibrations of small objects, that are not much larger than the *PicoQuake* itself, can be challenging. The vibrations of the object will be dampened by the device itself.
@@ -19,6 +19,8 @@ Using double sided tape is fine, but it might dampen higher frequency vibrations
 ## Connection
 
 Connect *PicoQuake* to your computer's USB port. Multiple devices can be connected at the same time.
+
+When connected and receiving power, the green LED will light up. The orange LED will light up when data is being acquired.
 
 !!! info "Short ID"
     Each *PicoQuake* has a 4 character ID that is used to identify it. It's printed on the label. All commands that require device identification use this ID.
