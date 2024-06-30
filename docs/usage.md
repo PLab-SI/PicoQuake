@@ -57,6 +57,8 @@ Acquire data from a *PicoQuake* device. The data is saved to a CSV file.
 picoquake acquire <short_id> <output_file> [options]
 ```
 
+For the description of the CSV file, see [Acquisition CSV File](acquisition_data.md).
+
 ### Examples
 
 Acquire data for 10 seconds at 100 Hz sample rate. Filter set to 42 Hz. Save it to `data.csv`.
@@ -80,3 +82,4 @@ picoquake acquire D4E9 data.csv -s 2 -r 4000 -f 1000 -ar 16 -gr 2000
 
 !!! info "Overwrite prompt"
     If the CSV file already exists, you will be prompted to overwrite it. To skip the prompt, add the `-y` flag.
+
