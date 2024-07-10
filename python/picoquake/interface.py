@@ -20,6 +20,8 @@ from .msg import messages_pb2
 from .configuration import *
 from .data import *
 from .exceptions import *
+from .analisys import *
+from .utils import *
 
 VID = 0x2E8A
 PID = 0xA
@@ -286,6 +288,72 @@ class PicoQuake:
             for _ in range(num_ret):
                 samples.append(self._sample_deque.popleft())
         return samples
+    
+    def trigger(self, rms_threshold: float, pre_seconds: float, post_seconds:
+                float, source: str="accel", axis: str="xyz",
+                rms_window: float=1.0, rms_interval: float=0.1) -> Tuple[AcquisitionData, Optional[Exception]]:
+        """
+        Triggers the device to start sampling when the RMS value of the acceleration exceeds the specified value.
+        """
+        if source not in ["accel", "gyro"]:
+            raise ValueError("Source must be 'accel' or 'gyro'")
+        combinations = get_axis_combinations("xyz")
+        if axis not in combinations:
+            raise ValueError("Invalid axis, must be 'x', 'y', 'z', or a combination.")
+
+        window_len = int(rms_window * self.config.sample_rate.param_value)
+        n_pre_samples = int(pre_seconds * self.config.sample_rate.param_value)
+        n_post_samples = int(post_seconds * self.config.sample_rate.param_value)
+        n_samples = n_pre_samples + n_post_samples
+        len_deque_at_trigger = 0
+        exception: Optional[Exception] = None
+
+        self.start_continuos()
+        self._logger.info(f"Triggering on RMS value {rms_threshold} g")
+
+        while True:
+            samples = deque_get_last_n(self._sample_deque, window_len)
+            if len(samples) < window_len:
+                sleep(0.001)
+                continue
+            rms_acc, rms_gyro = rms(samples, axis)
+            if source == "accel":
+                rms_val = rms_acc
+            else:
+                rms_val = rms_gyro
+            if rms_val > rms_threshold:
+                len_deque_at_trigger = len(self._sample_deque)
+                start_t = time()
+                break
+            sleep(rms_interval)
+        self._logger.info(f"Triggered on RMS value {rms_val:.3f} g")
+        while True:
+            if len(self._sample_deque) - len_deque_at_trigger > post_seconds * self.config.sample_rate.param_value:
+                break
+            if self._exception is not None:
+                exception = self._exception
+                break
+            sleep(0.001)
+        stop_t = time()
+        self.stop_continuos()
+        self._logger.info(f"Acquisition stopped. Took: {stop_t - start_t:.1f}s.")
+        self._logger.info(f"Received {len(samples)} samples")
+        samples = deque_slice(self._sample_deque,
+                              len_deque_at_trigger - n_pre_samples,
+                              len_deque_at_trigger + n_post_samples)
+        data = AcquisitionData(samples=samples,
+                               device=cast(DeviceInfo, self.device_info),
+                               config=self.config,
+                               start_time=datetime.fromtimestamp(start_t))
+        if exception is None:
+            if len(samples) < n_samples:
+                self._logger.warning(f"Expected {n_samples} samples, received {len(samples)}")
+                exception = ConnectionError("Not all samples received")
+            elif not data._check_integrity:
+                self._logger.warning(f"Data integrity compromised, {data.skipped_samples} samples skipped")
+                exception = ConnectionError("Data integrity compromised")
+        return data, exception
+        
 
     def read_last(self, timeout: Optional[float]=None) -> Optional[IMUSample]:
         """

@@ -1,6 +1,7 @@
 from itertools import permutations
 
 from .data import *
+from .utils import get_axis_combinations
 
 def plot_psd(result: AcquisitionData, output_file: str, axis: str = "xyz",
              freq_min: float = 0, freq_max: Optional[float] = None,
@@ -9,7 +10,7 @@ def plot_psd(result: AcquisitionData, output_file: str, axis: str = "xyz",
     import matplotlib.pyplot as plt
     from scipy.signal import welch, find_peaks
 
-    combinations = set(''.join(p) for i in range(1, 4) for p in permutations("xyz", i))
+    combinations = get_axis_combinations("xyz")
     if axis not in combinations:
         raise ValueError("Invalid axis, must be 'x', 'y', 'z', or a combination.")
     if not result.integrity:
@@ -84,7 +85,7 @@ def plot_fft(result: AcquisitionData, output_file: str, axis: str = "xyz",
     from scipy.signal import find_peaks
     from scipy.signal.windows import hann
 
-    combinations = set(''.join(p) for i in range(1, 4) for p in permutations("xyz", i))
+    combinations = get_axis_combinations("xyz")
     if axis not in combinations:
         raise ValueError("Invalid axis, must be 'x', 'y', 'z', or a combination.")
     if not result.integrity:
@@ -160,7 +161,7 @@ def plot(result: AcquisitionData, output_file: str, axis: str = "xyz",
     import numpy as np
     import matplotlib.pyplot as plt
 
-    combinations = set(''.join(p) for i in range(1, 4) for p in permutations("xyz", i))
+    combinations = get_axis_combinations("xyz")
     if axis not in combinations:
         raise ValueError("Invalid axis, must be 'x', 'y', 'z', or a combination.")
     if not result.integrity:
