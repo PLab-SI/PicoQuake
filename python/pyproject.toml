@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "picoquake"
-version = "1.1.0-beta"
+version = "1.1.0"
 description = "PicoQuake USB vibration sensor library."
 requires-python = ">=3.9"
 readme = "README.md"
@@ -32,7 +32,8 @@ classifiers = [
 dependencies = [
     "pyserial~=3.5",
     "protobuf~=3.20",
-    "cobs~=1.2"
+    "cobs~=1.2",
+    "tomli ~= 1.1 ; python_version < '3.11'"
 ]
 
 [project.optional-dependencies]

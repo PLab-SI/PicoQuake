@@ -1,6 +1,7 @@
 from itertools import permutations
 from collections import deque
 from typing import List, Any, Optional
+import os
 
 
 def get_axis_combinations(axis: str) -> set:
@@ -9,7 +10,7 @@ def get_axis_combinations(axis: str) -> set:
 
 def deque_get_last_n(data: deque, n: int) -> List[Any]:
     """
-    Get the last n elements from a deque.
+    Get the last n elements from a deque. Does not remove the elements from the deque.
 
     Args:
     data: Deque with data.
@@ -21,9 +22,10 @@ def deque_get_last_n(data: deque, n: int) -> List[Any]:
     start_idx = max(0, len(data) - n)
     return [data[i] for i in range(start_idx, len(data))]
 
+
 def deque_slice(dq: deque, start: Optional[int], end: Optional[int] = None) -> List[Any]:
     """
-    Return a slice from the deque.
+    Return a slice from the deque. Behaves like the list slice method.
     
     Args:
     dq: The deque to slice.
@@ -46,3 +48,27 @@ def deque_slice(dq: deque, start: Optional[int], end: Optional[int] = None) -> L
     if end > len(dq):
         end = len(dq)
     return [dq[i] for i in range(start, end)]
+
+
+def get_unique_filename(path: str):
+    """
+    Returns a unique filename by appending a sequential number if the file already exists.
+    
+    Args:
+        path: The path to the original file.
+    
+    Returns:
+        A unique filename.
+    """
+    if not os.path.isfile(path):
+        return path
+    
+    base, extension = os.path.splitext(path)
+    counter = 1
+    new_path = f"{base}_{counter}{extension}"
+    
+    while os.path.isfile(new_path):
+        counter += 1
+        new_path = f"{base}_{counter}{extension}"
+    
+    return new_path

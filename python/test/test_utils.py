@@ -1,3 +1,6 @@
+import os
+from tempfile import TemporaryDirectory
+
 from picoquake.utils import *
 
 
@@ -34,3 +37,25 @@ def test_deque_slice():
     for start, end in test_slices:
         assert deque_slice(dq, start, end) == list(dq)[start:end]
     
+
+def test_get_unique_filename():
+    with TemporaryDirectory() as temp_dir:
+        # Define a base filename
+        base_filename = os.path.join(temp_dir, "file.csv")
+        
+        # Test when file does not exist
+        assert get_unique_filename(base_filename) == base_filename
+        
+        # Create the base file
+        with open(base_filename, 'w') as f:
+            f.write('test content')
+
+        # Test when file exists
+        assert get_unique_filename(base_filename) == os.path.join(temp_dir, "file_1.csv")
+        
+        # Create the first unique file
+        with open(os.path.join(temp_dir, "file_1.csv"), 'w') as f:
+            f.write('test content')
+
+        # Test when base file and first unique file exist
+        assert get_unique_filename(base_filename) == os.path.join(temp_dir, "file_2.csv")

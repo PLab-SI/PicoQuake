@@ -1,0 +1,33 @@
+# Example configuration file for 'run' command
+# either [acquire] or [trigger] section is required
+
+[device]
+short_id = "C6E3" # short id of the device
+
+[config]
+sample_rate = 1000 # sample rate in Hz. Range 12.5 - 4000 Hz. Closest available selected.
+filter = 100 # filter frequency in Hz. Range 42 - 3979 Hz. Closest available selected.
+acc_range = 16 # acceleration range in g. Range 2 - 16 g. Closest available selected.
+gyro_range = 1000 # gyro range in dps. Range 15.625 - 2000 dps. Closest available selected.
+
+[acquire]
+# define duration in seconds or number of samples
+seconds = 3
+# n_samples = 10000
+
+# [trigger]
+# rms_threshold = 1.0 # RMS threshold for trigger
+# pre_seconds = 1 # duration before trigger
+# post_seconds = 2 # duration after trigger
+# source = "accel" # trigger source: "accel" or "gyro"
+# axis = "xyz" # trigger axis, must be 'x', 'y', 'z', or a combination
+# rms_window = 1.0 # window for RMS calculation in seconds
+
+[output]
+path = "pq_acq.csv" # output file path or directory if use_timestamp is true
+confirm_overwrite = true # require confirmation before overwriting
+sequential = true # add sequence number to filename
+use_timestamp = false # use timestamp as filename
+
+# [continuous] # continuous acquisition if this section is defined
+# interval = 0 # interval in seconds, 0 for continuous acquisition

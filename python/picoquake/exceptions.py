@@ -34,3 +34,15 @@ class DeviceError(Exception):
     def __init__(self, error_code: int):
         self.error_code: int = error_code
         super().__init__(f"Device error: {error_code}")
+
+class AcquisitionIncomplete(Exception):
+    """
+    Raised when acquisition is incomplete.
+    """
+    pass
+
+class AcquisitionDataCorrupted(Exception):
+    """
+    Raised when acquisition data is corrupted.
+    """
+    pass

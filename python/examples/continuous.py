@@ -5,10 +5,13 @@ Use this method to acquire data in real-time.
 """
 
 from time import sleep
+import logging
 
 import picoquake
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
     # Create a PicoQuake device
     device = picoquake.PicoQuake("d4e9")
 

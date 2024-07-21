@@ -83,3 +83,51 @@ picoquake acquire D4E9 data.csv -s 2 -r 4000 -f 1000 -ar 16 -gr 2000
 !!! info "Overwrite prompt"
     If the CSV file already exists, you will be prompted to overwrite it. To skip the prompt, add the `-y` flag.
 
+
+## Trigger
+
+Trigger data acquisition based on a threshold value.
+
+```bash
+picoquake trigger <short_id> <output_file> [options]
+```
+
+### Examples
+
+Trigger data acquisition when the RMS value of the acceleration in the X-axis exceeds 1 g. Save it to `data.csv`. Record for 1 second before and 5 seconds after the trigger.
+
+```bash
+picoquake trigger D4E9 data.csv  -r 1000 -f 303 --rms_threshold 1.0 --axis x --pre_seconds 1 --post_seconds 5
+```
+
+## Run
+
+Run acquisition from a TOML configuration file. Supports advanced options like trigger and continuous acquisition.
+
+```bash
+picoquake run <config_file>
+```
+
+Example configuration file `config.toml`:
+
+```toml
+[device]
+short_id = "C6E3" # short id of the device
+
+[config]
+sample_rate = 1000 # sample rate in Hz. Range 12.5 - 4000 Hz. Closest available selected.
+filter = 100 # filter frequency in Hz. Range 42 - 3979 Hz. Closest available selected.
+acc_range = 16 # acceleration range in g. Range 2 - 16 g. Closest available selected.
+gyro_range = 1000 # gyro range in dps. Range 15.625 - 2000 dps. Closest available selected.
+
+[acquire]
+# define duration in seconds or number of samples
+seconds = 3
+# n_samples = 10000
+
+[output]
+path = "pq_acq.csv" # output file path or directory if use_timestamp is true
+confirm_overwrite = true # require confirmation before overwriting
+sequential = true # add sequence number to filename
+use_timestamp = false # use timestamp as filename
+```

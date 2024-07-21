@@ -15,6 +15,7 @@ picoquake plot <csv_path> <output>
 
 You can specify the time range to plot using the `--tstart` and `--tend` arguments.
 The axes can be selected using the `-xyz` flag. Input only the desired axes in any order.
+This command plots only the acceleration data.
 
 For more information about the command, see [CLI reference](cli.md#plot).
 
@@ -30,7 +31,7 @@ picoquake plot_psd <csv_path> <output>
 
 You can specify the frequency range to plot using the `--fmin` and `--fmax` arguments.
 The axes can be selected using the `-xyz` flag. Input only the desired axes in any order.
-To annotate peaks, use the `--peaks` flag.
+To annotate peaks, use the `--peaks` flag. This command processes only the acceleration data.
 
 For more information about the command, see [CLI reference](cli.md#plot_psd).
 
@@ -54,7 +55,7 @@ picoquake plot_fft <csv_path> <output>
 
 You can specify the frequency range to plot using the `--fmin` and `--fmax` arguments.
 The axes can be selected using the `-xyz` flag. Input only the desired axes in any order.
-To annotate peaks, use the `--peaks` flag.
+To annotate peaks, use the `--peaks` flag. This command processes only the acceleration data.
 
 For more information about the command, see [CLI reference](cli.md#plot_fft).
 

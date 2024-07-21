@@ -4,9 +4,13 @@ Sample rate is handled by the device and is very accurate.
 Use this method to acquire high quality data for further analysis.
 """
 
+import logging
+
 import picoquake
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
     # Create a PicoQuake device
     device = picoquake.PicoQuake("d4e9")
 

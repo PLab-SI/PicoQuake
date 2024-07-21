@@ -8,7 +8,7 @@ from serial.tools.list_ports import comports
 from queue import Empty, Queue
 from time import sleep, time
 from threading import Thread, Event, Lock
-from typing import List, Optional, cast, Tuple
+from typing import List, Optional, cast, Tuple, Callable
 import logging
 import struct
 from datetime import datetime
@@ -96,7 +96,7 @@ class PicoQuake:
         self.device_info: Optional[DeviceInfo] = None
         """The device information."""
 
-        self.config: Config = Config(SampleRate.hz_100, Filter.hz_42, AccRange.g_2, GyroRange.dps_250)
+        self.config: Config = Config(SampleRate.hz_100, Filter.hz_42, AccRange.g_4, GyroRange.dps_1000)
         """The current configuration of the device."""
 
         self._continuos_mode = False
@@ -230,14 +230,15 @@ class PicoQuake:
                                device=cast(DeviceInfo, self.device_info),
                                config=self.config,
                                start_time=datetime.fromtimestamp(start_t))
+        data.re_centre(0)
 
         if exception is None:
             if len(samples) < n_samples:
                 self._logger.warning(f"Expected {n_samples} samples, received {len(samples)}")
-                exception = ConnectionError("Not all samples received")
+                exception = AcquisitionIncomplete("Not all samples received")
             elif not data._check_integrity:
-                self._logger.warning(f"Data integrity compromised, {data.skipped_samples} samples skipped")
-                exception = ConnectionError("Data integrity compromised")
+                self._logger.warning(f"Data corrupted, {data.skipped_samples} samples skipped")
+                exception = AcquisitionDataCorrupted("Data corrupted")
         return data, exception
 
     def start_continuos(self):
@@ -266,6 +267,7 @@ class PicoQuake:
         Args:
             num: The number of samples to read.
             timeout: The maximum time to wait for the samples.
+        
         Returns:
             List of samples. Might be less than `num` if timeout is set.
 
@@ -291,9 +293,23 @@ class PicoQuake:
     
     def trigger(self, rms_threshold: float, pre_seconds: float, post_seconds:
                 float, source: str="accel", axis: str="xyz",
-                rms_window: float=1.0, rms_interval: float=0.1) -> Tuple[AcquisitionData, Optional[Exception]]:
+                rms_window: float=1.0,
+                on_trigger: Optional[Callable[[float], None]]=None) -> Tuple[AcquisitionData, Optional[Exception]]:
         """
-        Triggers the device to start sampling when the RMS value of the acceleration exceeds the specified value.
+        Triggers the device to start sampling when the RMS value exceeds the threshold.
+
+        Args:
+            rms_threshold: The RMS threshold in g.
+            pre_seconds: The duration before the trigger in seconds.
+            post_seconds: The duration after the trigger in seconds.
+            source: The source of the RMS value, either "accel" or "gyro".
+            axis: The axis or combination of axes to calculate the RMS value.
+            rms_window: The window length in seconds to calculate the RMS value.
+            on_trigger: A callback function to call when the trigger is activated.
+                The RMS value is passed as an argument.
+
+        Returns:
+            A tuple containing the acquisition data and an exception if any occurred.
         """
         if source not in ["accel", "gyro"]:
             raise ValueError("Source must be 'accel' or 'gyro'")
@@ -305,18 +321,22 @@ class PicoQuake:
         n_pre_samples = int(pre_seconds * self.config.sample_rate.param_value)
         n_post_samples = int(post_seconds * self.config.sample_rate.param_value)
         n_samples = n_pre_samples + n_post_samples
+        last_len_deque = 0
         len_deque_at_trigger = 0
         exception: Optional[Exception] = None
 
         self.start_continuos()
         self._logger.info(f"Triggering on RMS value {rms_threshold} g")
 
+        # wait for trigger
         while True:
-            samples = deque_get_last_n(self._sample_deque, window_len)
-            if len(samples) < window_len:
+            if len(self._sample_deque) - last_len_deque < window_len:
+                if self._exception is not None:
+                    raise self._exception
                 sleep(0.001)
                 continue
-            rms_acc, rms_gyro = rms(samples, axis)
+            samples = deque_get_last_n(self._sample_deque, window_len)
+            rms_acc, rms_gyro = imu_rms(samples, axis, de_trend=True)
             if source == "accel":
                 rms_val = rms_acc
             else:
@@ -325,8 +345,11 @@ class PicoQuake:
                 len_deque_at_trigger = len(self._sample_deque)
                 start_t = time()
                 break
-            sleep(rms_interval)
+            last_len_deque = len(self._sample_deque)
+        # trigger activated, acquire data
         self._logger.info(f"Triggered on RMS value {rms_val:.3f} g")
+        if on_trigger is not None:
+            on_trigger(rms_val)
         while True:
             if len(self._sample_deque) - len_deque_at_trigger > post_seconds * self.config.sample_rate.param_value:
                 break
@@ -336,22 +359,28 @@ class PicoQuake:
             sleep(0.001)
         stop_t = time()
         self.stop_continuos()
-        self._logger.info(f"Acquisition stopped. Took: {stop_t - start_t:.1f}s.")
-        self._logger.info(f"Received {len(samples)} samples")
+        start_idx = max(0, len_deque_at_trigger - n_pre_samples)
+        stop_idx = min(len(self._sample_deque), len_deque_at_trigger + n_post_samples)
         samples = deque_slice(self._sample_deque,
-                              len_deque_at_trigger - n_pre_samples,
-                              len_deque_at_trigger + n_post_samples)
+                              start_idx,
+                              stop_idx)
         data = AcquisitionData(samples=samples,
                                device=cast(DeviceInfo, self.device_info),
                                config=self.config,
                                start_time=datetime.fromtimestamp(start_t))
+        self._logger.info(f"Acquisition stopped. Took: {stop_t - start_t:.1f}s.")
+        self._logger.info(f"Received {len(samples)} samples")
+        data.re_centre(data.num_samples - n_post_samples)
         if exception is None:
-            if len(samples) < n_samples:
+            if len_deque_at_trigger < n_pre_samples:
+                self._logger.warning(f"Triggered too early, {n_pre_samples - len_deque_at_trigger} samples skipped")
+                exception = AcquisitionIncomplete("Triggered too early")
+            elif len(samples) < n_samples:
                 self._logger.warning(f"Expected {n_samples} samples, received {len(samples)}")
-                exception = ConnectionError("Not all samples received")
+                exception = AcquisitionIncomplete("Not all samples received")
             elif not data._check_integrity:
-                self._logger.warning(f"Data integrity compromised, {data.skipped_samples} samples skipped")
-                exception = ConnectionError("Data integrity compromised")
+                self._logger.warning(f"Data corrupted, {data.skipped_samples} samples skipped")
+                exception = AcquisitionDataCorrupted("Data corrupted")
         return data, exception
         
 
@@ -503,7 +532,7 @@ class PicoQuake:
                         raise DeviceError(status.error_code)
                 elif isinstance(msg, messages_pb2.DeviceInfo):
                     self.device_info = DeviceInfo(msg.unique_id.hex().upper(),
-                                                  msg.firmware.decode("utf-8"))
+                                                  msg.firmware.replace(b'\x00', b'').decode("utf-8"))
 
             # check device status
             if self.device_info is not None:

@@ -124,7 +124,6 @@ class AcquisitionData:
     device: DeviceInfo
     config: Config
     start_time: datetime
-    skipped_samples: int = field(init=False)
     csv_path: Optional[str] = None
 
     @property
@@ -136,6 +135,10 @@ class AcquisitionData:
         return len(self.samples)
     
     @property
+    def skipped_samples(self) -> int:
+        return self._check_integrity()
+    
+    @property
     def integrity(self) -> bool:
         return self.skipped_samples == 0
     
@@ -145,6 +148,18 @@ class AcquisitionData:
             return None
         else:
             return os.path.basename(self.csv_path)
+        
+    def re_centre(self, index: int):
+        """
+        Re-centre the data around a specific index.
+        
+        Args:
+            index: The index to re-centre the data around.
+        """
+        index = min(max(0, index), len(self.samples) - 1)
+        first = self.samples[index].count
+        for s in self.samples:
+            s.count -= first
     
     def _check_integrity(self) -> int:
         """Counts skipped samples."""
@@ -156,16 +171,6 @@ class AcquisitionData:
                 skipped += diff - 1
             last_count = s.count
         return skipped
-    
-    def _normalize_count(self):
-        """Make the first sample count 0."""
-        first = self.samples[0].count
-        for s in self.samples:
-            s.count -= first
-    
-    def __post_init__(self):
-        self.skipped_samples = self._check_integrity()
-        self._normalize_count()
 
     def __str__(self) -> str:
         return (f"device = {self.device.short_id}, "
@@ -174,7 +179,7 @@ class AcquisitionData:
                 f"duration = {self.duration:.2f}s, "
                 f"skipped = {self.skipped_samples}")
     
-    def to_csv(self, filename: str):
+    def to_csv(self, path: str):
         """
         Write the data to a CSV file.
 
@@ -182,11 +187,12 @@ class AcquisitionData:
             filename: Path to the CSV file.
         """
         metadata = f"# PLab PicoQuake Data\n" \
-               f"# Time: {self.start_time.isoformat(sep=' ')}, Device: {self.device.short_id.upper()} ({self.device.unique_id})\n" \
+               f"# Time: {self.start_time.isoformat(sep=' ')}, Device: {self.device.short_id.upper()} ({self.device.unique_id}), " \
+               f"FW: {self.device.firmware}\n" \
                f"# Num. samples: {self.num_samples}, Duration: {self.duration} s\n" \
                f"# Config: {self.config}\n" \
                f"# Integrity: {self.integrity}, Skipped samples: {self.skipped_samples}\n"
-        with open(filename, "w", newline="") as f:
+        with open(path, "w", newline="") as f:
             f.write(metadata)
             writer = csv.writer(f)
             writer.writerow(["count", "a_x", "a_y", "a_z", "g_x", "g_y", "g_z"])

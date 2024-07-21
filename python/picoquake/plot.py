@@ -2,6 +2,7 @@ from itertools import permutations
 
 from .data import *
 from .utils import get_axis_combinations
+from .analisys import running_rms
 
 def plot_psd(result: AcquisitionData, output_file: str, axis: str = "xyz",
              freq_min: float = 0, freq_max: Optional[float] = None,
@@ -157,7 +158,8 @@ def plot_fft(result: AcquisitionData, output_file: str, axis: str = "xyz",
     plt.savefig(output_file, dpi=200)
 
 def plot(result: AcquisitionData, output_file: str, axis: str = "xyz",
-         tstart: float = 0, tend: float = float("inf"), title=None) -> None:
+         tstart: float = float("-inf"), tend: float = float("inf"), title=None,
+         rms: bool=False, rms_win: float=1.0, rms_detrend: bool=False) -> None:
     import numpy as np
     import matplotlib.pyplot as plt
 
@@ -173,15 +175,20 @@ def plot(result: AcquisitionData, output_file: str, axis: str = "xyz",
 
     plt.figure(figsize=(10, 6))  # Increase figure size. You can adjust the values as needed.
 
-    t = np.linspace(0, len(acc_x) / result.config.sample_rate.param_value, len(acc_x))
+    dt = 1 / result.config.sample_rate.param_value
+    t = np.array([dt * s.count for s in result.samples])
     if(tend == None):
         tend = len(acc_x) / result.config.sample_rate.param_value
     mask = (t >= tstart) & (t <= tend)
     t = t[mask]
-    for ax, acc, color in zip(['x', 'y', 'z'], [acc_x, acc_y, acc_z], ["red", "green", "blue"]):
+    for ax, acc, color, rms_color in zip(['x', 'y', 'z'], [acc_x, acc_y, acc_z], ["red", "green", "blue"], ["orange", "lightgreen", "lightblue"]):
         if ax in axis:
             acc = acc[mask]
             plt.plot(t, acc, label=ax, linewidth=1.0, color=color)
+            if rms:
+                rms_data = running_rms(acc.tolist(), int(rms_win * result.config.sample_rate.param_value),
+                                       de_trend=rms_detrend)
+                plt.plot(t, rms_data, label=f"{ax} RMS", linewidth=2.0, color=rms_color, linestyle="--")
 
     if title is not None:
         plt.title(title, pad=20)

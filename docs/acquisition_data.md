@@ -8,14 +8,14 @@ The first few lines of the CSV file contain metadata about the acquisition sessi
 
 ``` plaintext
 # PLab PicoQuake Data
-# Time: 2024-04-21 15:54:46.333682, Device: D4E9 (E6632891E36F2029)
+# Time: 2024-04-21 15:54:46.333682, Device: C6E3 (E66368254F89A225), FW: 1.0.0
 # Num. samples: 10000, Duration: 5.0 s
 # Config: data_rate = 2000.0 Hz, filter = 488 Hz, acc_range = 4 g, gyro_range = 250.0 dps
 # Integrity: True, Skipped samples: 0
 ```
 
 - `Time`: Acquisition start time (local timezone in ISO 8601 format).
-- `Device`: Device information, including the device short ID and unique ID.
+- `Device`: Device information, including the device short ID, unique ID and firmware version.
 - `Num. samples`: Number of samples collected during the acquisition session.
 - `Duration`: Duration of the acquisition session (in seconds).
 - `Config`: Acquisition configuration details, including data rate, filter frequency, accelerometer range, and gyroscope range.
