@@ -33,7 +33,7 @@ typedef struct ImuSendStruct {
 //
 
 
-static constexpr char FIRMWARE_VERSION[] =  "1.0.0";
+static constexpr char FIRMWARE_VERSION[] =  "1.0.1";
 
 // LED on when SPI transfer ongoing or LED on when state sampling
 // #define LED_ON_SPI_TRANSFER_DEBUG
