@@ -64,14 +64,14 @@ For the description of the CSV file, see [Acquisition CSV File](acquisition_data
 Acquire data for 10 seconds at 100 Hz sample rate. Filter set to 42 Hz. Save it to `data.csv`.
 
 ```bash
-picoquake acquire D4E9 data.csv -s 10 -r 100 -f 42
+picoquake acquire c6e3 data.csv -s 10 -r 100 -f 42
 ```
 
 Acquire data for 2 seconds at 4000 Hz sample rate. Filter set to 1000 Hz.
 Accelerometer range set to +-16 g, gyro range set to +-2000 dps. Save it to `data.csv`.
 
 ```bash
-picoquake acquire D4E9 data.csv -s 2 -r 4000 -f 1000 -ar 16 -gr 2000
+picoquake acquire c6e3 data.csv -s 2 -r 4000 -f 1000 -ar 16 -gr 2000
 ```
 
 !!! warning
@@ -97,7 +97,7 @@ picoquake trigger <short_id> <output_file> [options]
 Trigger data acquisition when the RMS value of the acceleration in the X-axis exceeds 1 g. Save it to `data.csv`. Record for 1 second before and 5 seconds after the trigger.
 
 ```bash
-picoquake trigger D4E9 data.csv  -r 1000 -f 303 --rms_threshold 1.0 --axis x --pre_seconds 1 --post_seconds 5
+picoquake trigger c6e3 data.csv  -r 1000 -f 303 --rms_threshold 1.0 --axis x --pre_seconds 1 --post_seconds 5
 ```
 
 ## Run

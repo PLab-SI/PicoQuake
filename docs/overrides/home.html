@@ -1,0 +1,226 @@
+{% extends "main.html" %}
+{% block tabs %}
+{{ super() }}
+
+<style>
+
+  .md-main {
+    flex-grow: 0;
+  }
+
+  .md-main__inner {
+    display: flex;
+    height: 100%;
+  }
+
+  .content-section {
+    padding: 20px;
+  }
+
+  .hero {
+    padding: 20px;
+    /* margin: 20px 0; */
+    text-align: center; /* Center the text */
+  }
+  
+  .hero h1 {
+    font-size: 48px; /* Limit maximum font size */
+    font-weight: bold; /* Make the text bold */
+    margin: 0; /* Remove default margin */
+    color: #393939; /* Set the text color */
+  }
+
+  .hero p {
+    font-size: 25px; /* Limit maximum font size */
+    margin: 1; /* Remove default margin */
+    color: #666; /* Set the text color */
+  }
+
+  .hero img {
+    width: 100%; /* Ensure the image fills its container */
+    height: auto; /* Allow the image to scale */
+    max-width: 600px; /* Limit the maximum width of the image */
+    margin: 20px auto; /* Center the image */
+    position: relative; /* Position the image relative for the gradient overlay */
+  }
+
+.hero .buy-button-container {
+  margin-top: 20px;
+  text-align: center; /* Center the button under the image */
+}
+
+.hero .buy-button{
+  padding: 10px 20px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffffff !important;
+  background-color: var(--md-accent-fg-color);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  text-decoration: none;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+}
+
+.hero .buy-button:hover {
+  background-color: #6500c3;
+}
+
+  .feature-card {
+  display: flex;
+  flex-wrap: wrap; /* Ensure items wrap on smaller screens */
+  align-items: flex-start;
+  padding: 20px 0; /* Remove borders, keep padding only at top and bottom */
+  margin: 20px auto; /* Center the cards */
+  max-width: 1200px; /* Limit the width of the cards */
+  border: none; /* No border around the card */
+  border-bottom: 1px solid #ccc; /* Only a line separator at the bottom of each card */
+}
+
+.feature-card:last-of-type {
+  border-bottom: none; /* Remove the bottom border for the last card */
+}
+
+.feature-card h2{
+  margin-top: 0.5em;
+}
+
+.feature-card-text,
+.feature-card-image {
+  flex: 1 1 50%; /* Allow items to grow and shrink */
+  box-sizing: border-box;
+}
+
+.feature-card-text {
+  padding-right: 20px;
+}
+
+.feature-card-image img {
+  width: 100%; /* Ensure the image fills its container */
+  height: auto;
+  max-width: 600px;
+  margin: 10px;
+}
+
+@media (max-width: 768px) {
+  .feature-card {
+    flex-direction: column;
+  }
+  .feature-card-text {
+    padding-right: 0;
+    margin-bottom: 15px;
+  }
+  .hero h1 {
+    font-size: 32px; /* Limit maximum font size */
+  }
+  .hero p {
+    font-size: 16px; /* Limit maximum font size */
+  }
+}
+</style>
+
+<section class="content-section md-typeset">
+  <div class="hero">
+    <h1>USB Vibration Sensor</h1>
+    <p>
+      Measure any vibration.
+    </p>
+    <img src="/assets/pq_1.jpeg" alt="PicoQuake" />
+    <div class="buy-button-container">
+      <a href="https://www.tindie.com/products/plab/picoquake-usb-vibration-sensor/?ref=webpage_buy_btn&utm_source=webpage&utm_medium=buy_btn&utm_campaign=webpage" target="_blank" class="buy-button">
+        Buy on Tindie
+      </a>
+    </div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-card-text">
+      <h2>Measure Anything</h2>
+      <p>
+        Measure vibrations of a small fan or a tall building. 
+        Using a low-noise MEMS accelerometer, even the smallest vibrations can be detected.
+      </p>
+      <ul>
+        <li><strong>16 g</strong> acceleration range</li>
+        <li><strong>4 kHz</strong> sample rate</li>
+      </ul>
+      <p>
+        Simply hold it to an object, stick it with a double-sided tape or fix it with a cable tie.
+      </p>
+      <p>
+        <a href="/specs">Specs</a>
+      </p>
+    </div>
+    <div class="feature-card-image">
+      <img src="assets/signal_diagram.svg" alt="Bridge" />
+    </div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-card-text">
+      <h2>Standalone, Accessible, Open Source</h2>
+      <p>
+        A cost effective alternative to industrial vibration sensors.
+      </p>
+      <p>
+        Connects directly to your computer via USB.
+        No additional power supply required. 
+        Python driver and command line interface (CLI) with minimal dependencies.
+        Supports Linux, Mac & Windows.
+      </p>
+      <p>
+        Firmware and Python driver are open-source and available on GitHub.
+      </p>
+      <p>
+        <a href="https://github.com/PLab-SI/PicoQuake">Repository</a>
+      </p>
+    </div>
+    <div class="feature-card-image">
+      <img src="assets/plot_example_fft.png" alt="FFT Plot" />
+    </div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-card-text">
+      <h2>Command Line Interface</h2>
+      <p>
+        Control <i>PicoQuake</i> using the command line interface (CLI).
+      </p>
+      <p>
+        List available devices, set acquisition parameters and trigger data acquisition.
+        For advanced acquisitions, a TOML file can be used for configuration. Continuous or interval acquisition is supported.
+        Data is saved to a CSV file.
+      </p>
+      <p>
+        Supports basic plotting of time series and power spectral density of the acquired data.
+      </p>
+      <p>
+        <a href="/cli">CLI Documentation</a>
+      </p>
+    </div>
+    <div class="feature-card-image">
+      <img src="assets/terminal_screenshot.png" alt="Terminal CLI" />
+    </div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-card-text">
+      <h2>Python API</h2>
+      <p>
+        Integrate <i>PicoQuake</i> into your project using the Python API. 
+      </p>
+      <p>
+        Read values directly, trigger acquisition based on a threshold, or stream buffered data.
+      </p>
+      <p>
+        <a href="/python_api/interface">API Documentation</a>
+      </p>
+    </div>
+    <div class="feature-card-image">
+      <img src="assets/vscode_screenshot.png" alt="VSCode Screenshot" />
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+<!-- {% block content %}{% endblock %} -->
+{% block footer %}
+{{ super() }}
+{% endblock %}

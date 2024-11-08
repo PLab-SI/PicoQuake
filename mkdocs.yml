@@ -5,30 +5,36 @@ repo_name: PLab-SI/PicoQuake
 
 nav:
   - Home: index.md
-  - Example Use Cases:
+  - Specs: specs.md
+  - Use Cases:
     - examples/trackpad.md
     - examples/bldc.md
-  - installation.md
-  - usage.md
-  - plotting.md
-  - acquisition_data.md
-  - fw_update.md
-  - cli.md
-  - Python API:
-    - Examples: python_api/examples.md
-    - Reference:
-      - python_api/interface.md
-      - python_api/data.md
-      - python_api/exceptions.md
+  - Getting Started: getting_started.md
+  - Documentation:
+    - usage.md
+    - plotting.md
+    - acquisition_data.md
+    - fw_update.md
+    - cli.md
+    - Python API:
+      - Examples: python_api/examples.md
+      - Reference:
+        - python_api/interface.md
+        - python_api/data.md
+        - python_api/exceptions.md
 
 theme:
   name: material
   palette:
-    - scheme: default
-      primary: blue grey
-      accent: orange
+    primary: custom
+    accent: custom
   logo: assets/axes_symbol_round.svg
   favicon: assets/axes_symbol_round.svg
+  custom_dir: docs/overrides
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.instant
 
 plugins:
   - search
@@ -54,4 +60,15 @@ markdown_extensions:
   - toc:
       permalink: true
 
-copyright: Copyright &copy; 2024 PLab
+extra:
+  social:
+    - icon: fontawesome/regular/envelope
+      link: mailto:info@plab.si
+  analytics:
+    provider: google
+    property: G-FHTMPZ6GSS
+
+extra_css:
+  - stylesheets/extra.css
+
+copyright: Copyright &copy; 2024 <a href="https://www.plab.si">PLab</a>
