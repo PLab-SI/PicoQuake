@@ -10,7 +10,7 @@ import picoquake
 
 if __name__ == "__main__":
     # Create a PicoQuake device
-    device = picoquake.PicoQuake("d4e9")
+    device = picoquake.PicoQuake("c6e3")
 
     # Configure acquisition
     device.configure(
@@ -58,7 +58,7 @@ import picoquake
 
 if __name__ == "__main__":
     # Create a PicoQuake device
-    device = picoquake.PicoQuake("d4e9")
+    device = picoquake.PicoQuake("c6e3")
 
     # Configure acquisition
     device.configure(
