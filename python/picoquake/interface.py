@@ -345,7 +345,15 @@ class PicoQuake:
                 len_deque_at_trigger = len(self._sample_deque)
                 start_t = time()
                 break
+                        
+            with self._lock:
+                # remove old samples when the deque is too long
+                if len(self._sample_deque) > _LEN_DEQUE / 2:
+                    self._logger.debug("Deque is too long, removing old samples")
+                    remove_first_n_elements(self._sample_deque, int(_LEN_DEQUE / 4))
+            
             last_len_deque = len(self._sample_deque)
+            
         # trigger activated, acquire data
         self._logger.info(f"Triggered on RMS value {rms_val:.3f} g")
         if on_trigger is not None:
