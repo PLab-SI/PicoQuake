@@ -1,5 +1,5 @@
 """
-This example demonstrates how to trigger an acquisition based on a root mean square (RMS) threshold.
+This example demonstrates how to trigger an acquisition with a loop, based on a root mean square (RMS) threshold.
 Sample rate is handled by the device and is very accurate.
 """
 
