@@ -20,8 +20,19 @@ def deque_get_last_n(data: deque, n: int) -> List[Any]:
     List with the last n elements from the deque. If n is greater than the length of the deque, all elements are returned.
     """
     start_idx = max(0, len(data) - n)
+    
     return [data[i] for i in range(start_idx, len(data))]
 
+def remove_first_n_elements(data: deque, n: int) -> None:
+    """
+    Remove the first n elements from a deque.
+    
+    Args:
+    data: Deque with data.
+    n: Number of elements to remove.    
+    """
+    for i in range(n):
+        data.pop()    
 
 def deque_slice(dq: deque, start: Optional[int], end: Optional[int] = None) -> List[Any]:
     """
