@@ -156,6 +156,8 @@ class AcquisitionData:
         Args:
             index: The index to re-centre the data around.
         """
+        if len(self.samples) == 0:
+            return
         index = min(max(0, index), len(self.samples) - 1)
         first = self.samples[index].count
         for s in self.samples:

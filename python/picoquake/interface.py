@@ -61,7 +61,10 @@ class PicoQuake:
         acquire: Acquires data for a specified duration.
         start_continuos: Starts the device in continuos mode.
         stop_continuos: Stops the device in continuos mode.
+        read: Reads the specified number of samples received in continuos mode.
         read_last: Reads the last sample received in continuos mode.
+        trigger: Triggers the device to start sampling when the RMS value exceeds the threshold.
+        reboot_to_bootsel: Reboots the device to BOOTSEL mode.
     """
 
     def __init__(self, short_id: Optional[str] = None, port: Optional[str] = None):
@@ -311,6 +314,8 @@ class PicoQuake:
         Returns:
             A tuple containing the acquisition data and an exception if any occurred.
         """
+        if rms_threshold <= 0:
+            raise ValueError("RMS threshold must be greater than 0")
         if source not in ["accel", "gyro"]:
             raise ValueError("Source must be 'accel' or 'gyro'")
         combinations = get_axis_combinations("xyz")
@@ -321,16 +326,28 @@ class PicoQuake:
         n_pre_samples = int(pre_seconds * self.config.sample_rate.param_value)
         n_post_samples = int(post_seconds * self.config.sample_rate.param_value)
         n_samples = n_pre_samples + n_post_samples
-        last_len_deque = 0
-        len_deque_at_trigger = 0
+        last_sample_count = 0
+        sample_count_at_trigger = 0
+        trigger_time = 0
         exception: Optional[Exception] = None
 
         self.start_continuos()
         self._logger.info(f"Triggering on RMS value {rms_threshold} g")
+        self._logger.info(f"deque maxlen: {_LEN_DEQUE}")
 
+        # wait for sampling to start
+        start_time = time()
+        while True:
+            if len(self._sample_deque) > 0:
+                break
+            if time() - start_time > _SAMPLE_START_TIMEOUT:
+                self._logger.error("Sampling not started in time")
+                self.stop_continuos()
+                raise ConnectionError("Sampling not started in time")
         # wait for trigger
         while True:
-            if len(self._sample_deque) - last_len_deque < window_len:
+            sample_count = self._sample_deque[-1].count
+            if sample_count - last_sample_count < window_len:
                 if self._exception is not None:
                     raise self._exception
                 sleep(0.001)
@@ -342,16 +359,17 @@ class PicoQuake:
             else:
                 rms_val = rms_gyro
             if rms_val > rms_threshold:
-                len_deque_at_trigger = len(self._sample_deque)
-                start_t = time()
+                sample_count_at_trigger = self._sample_deque[-1].count
+                trigger_time = time()
                 break
-            last_len_deque = len(self._sample_deque)
+            last_sample_count = sample_count
         # trigger activated, acquire data
         self._logger.info(f"Triggered on RMS value {rms_val:.3f} g")
         if on_trigger is not None:
             on_trigger(rms_val)
         while True:
-            if len(self._sample_deque) - len_deque_at_trigger > post_seconds * self.config.sample_rate.param_value:
+            sample_count = self._sample_deque[-1].count
+            if sample_count - sample_count_at_trigger > n_post_samples:
                 break
             if self._exception is not None:
                 exception = self._exception
@@ -359,21 +377,32 @@ class PicoQuake:
             sleep(0.001)
         stop_t = time()
         self.stop_continuos()
-        start_idx = max(0, len_deque_at_trigger - n_pre_samples)
-        stop_idx = min(len(self._sample_deque), len_deque_at_trigger + n_post_samples)
+        # find idx by comparing count
+        for i in range(len(self._sample_deque)):
+            if self._sample_deque[i].count == sample_count_at_trigger - n_pre_samples:
+                start_idx = i
+                break
+        else:
+            start_idx = 0
+        for i in range(len(self._sample_deque)):
+            if self._sample_deque[i].count == sample_count_at_trigger + n_post_samples:
+                stop_idx = i
+                break
+        else:
+            stop_idx = len(self._sample_deque)
         samples = deque_slice(self._sample_deque,
                               start_idx,
                               stop_idx)
         data = AcquisitionData(samples=samples,
                                device=cast(DeviceInfo, self.device_info),
                                config=self.config,
-                               start_time=datetime.fromtimestamp(start_t))
-        self._logger.info(f"Acquisition stopped. Took: {stop_t - start_t:.1f}s.")
+                               start_time=datetime.fromtimestamp(trigger_time))
+        self._logger.info(f"Acquisition stopped. Took: {stop_t - trigger_time:.1f}s.")
         self._logger.info(f"Received {len(samples)} samples")
         data.re_centre(data.num_samples - n_post_samples)
         if exception is None:
-            if len_deque_at_trigger < n_pre_samples:
-                self._logger.warning(f"Triggered too early, {n_pre_samples - len_deque_at_trigger} samples skipped")
+            if sample_count_at_trigger < n_pre_samples:
+                self._logger.warning(f"Triggered too early, {n_pre_samples - sample_count_at_trigger} samples skipped")
                 exception = AcquisitionIncomplete("Triggered too early")
             elif len(samples) < n_samples:
                 self._logger.warning(f"Expected {n_samples} samples, received {len(samples)}")

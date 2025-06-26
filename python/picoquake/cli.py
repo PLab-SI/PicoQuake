@@ -540,11 +540,11 @@ def main():
                                 help="Acceleration range in g. Range 2 - 16 g. Closest available selected.")
     trigger_parser.add_argument("-gr", "--gyro_range", type=float, default=1000.0,
                                 help="Gyro range in dps. Range 15.625 - 2000 dps. Closest available selected.")
-    trigger_parser.add_argument("--rms_threshold", type=float, help="RMS threshold for triggering.")
+    trigger_parser.add_argument("--rms_threshold", type=float, help="RMS threshold for triggering.", required=True)
     trigger_parser.add_argument("--pre_seconds", type=float, default=0.0,
                                 help="Duration before trigger in seconds.")
     trigger_parser.add_argument("--post_seconds", type=float, default=1.0,
-                                help="Duration after trigger in seconds.")
+                                help="Duration after trigger in seconds.")  
     trigger_parser.add_argument("--source", choices=["accel", "gyro"], default="accel",
                                 help="Source for triggering.")
     trigger_parser.add_argument("-a", "--axis", default="xyz", help="Trigger axis, must be 'x', 'y', 'z', or a combination")
