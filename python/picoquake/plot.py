@@ -6,7 +6,8 @@ from .analisys import running_rms
 
 def plot_psd(result: AcquisitionData, output_file: str, axis: str = "xyz",
              freq_min: float = 0, freq_max: Optional[float] = None,
-             show_peaks: bool = False, title=None) -> None:
+             show_peaks: bool = False, title=None,
+             tstart: float = float("-inf"), tend: float = float("inf")) -> None:
     import numpy as np
     import matplotlib.pyplot as plt
     from scipy.signal import welch, find_peaks
@@ -37,6 +38,15 @@ def plot_psd(result: AcquisitionData, output_file: str, axis: str = "xyz",
     acc_x = np.array([s.acc_x for s in result.samples])
     acc_y = np.array([s.acc_y for s in result.samples])
     acc_z = np.array([s.acc_z for s in result.samples])
+
+    # Apply time filtering
+    dt = 1 / result.config.sample_rate.param_value
+    t = np.array([dt * s.count for s in result.samples])
+    t_mask = (t >= tstart) & (t <= tend)
+    t = t[t_mask]
+    acc_x = acc_x[t_mask]
+    acc_y = acc_y[t_mask]
+    acc_z = acc_z[t_mask]
 
     # calculate segment length based on plot frequency range
     nperseg = min(int((100 * result.config.sample_rate.param_value) // (freq_max - freq_min)), len(acc_x))
@@ -79,7 +89,8 @@ def plot_psd(result: AcquisitionData, output_file: str, axis: str = "xyz",
 
 def plot_fft(result: AcquisitionData, output_file: str, axis: str = "xyz",
              freq_min: float = 0, freq_max: Optional[float] = None,
-             show_peaks: bool = False, title=None) -> None:
+             show_peaks: bool = False, title=None,
+             tstart: float = float("-inf"), tend: float = float("inf")) -> None:
     import numpy as np
     import matplotlib.pyplot as plt
     from scipy.fft import fft, fftfreq
@@ -113,6 +124,14 @@ def plot_fft(result: AcquisitionData, output_file: str, axis: str = "xyz",
     acc_y = np.array([s.acc_y for s in result.samples])
     acc_z = np.array([s.acc_z for s in result.samples])
 
+    # Apply time filtering
+    dt = 1 / result.config.sample_rate.param_value
+    t = np.array([dt * s.count for s in result.samples])
+    t_mask = (t >= tstart) & (t <= tend)
+    t = t[t_mask]
+    acc_x = acc_x[t_mask]
+    acc_y = acc_y[t_mask]
+    acc_z = acc_z[t_mask]
 
     plt.figure(figsize=(10, 8))  # Increase figure size. You can adjust the values as needed.
     for ax, acc, color in zip(['x', 'y', 'z'], [acc_x, acc_y, acc_z], ["red", "green", "blue"]):
@@ -124,9 +143,9 @@ def plot_fft(result: AcquisitionData, output_file: str, axis: str = "xyz",
             acc = acc * window
             yf = fft(acc)
             xf = fftfreq(N, T)
-            mask = (xf >= freq_min) & (xf <= freq_max)
-            xf = xf[mask]
-            yf = yf[mask]
+            f_mask = (xf >= freq_min) & (xf <= freq_max)
+            xf = xf[f_mask]
+            yf = yf[f_mask]
             plt.plot(xf, 2.0/N * np.abs(yf[0:N//2]), label=ax, linewidth=1.0, color=color)
             if show_peaks:
                 peaks, _ = find_peaks(2.0/N * np.abs(yf[0:N//2]))
@@ -143,7 +162,6 @@ def plot_fft(result: AcquisitionData, output_file: str, axis: str = "xyz",
                                     arrowprops=dict(facecolor=color, shrink=0.1, width=3, headwidth=6, headlength=6),
                                     bbox=dict(boxstyle="round,pad=0.3", edgecolor=color, facecolor='white', alpha=1.0))
 
-
     if title is not None:
         plt.title(title, pad=40)
     elif result.filename is not None:
@@ -156,6 +174,7 @@ def plot_fft(result: AcquisitionData, output_file: str, axis: str = "xyz",
     plt.legend(loc="upper right")
     plt.autoscale(enable=True, axis='y', tight=False)
     plt.savefig(output_file, dpi=200)
+
 
 def plot(result: AcquisitionData, output_file: str, axis: str = "xyz",
          tstart: float = float("-inf"), tend: float = float("inf"), title=None,
@@ -177,8 +196,6 @@ def plot(result: AcquisitionData, output_file: str, axis: str = "xyz",
 
     dt = 1 / result.config.sample_rate.param_value
     t = np.array([dt * s.count for s in result.samples])
-    if(tend == None):
-        tend = len(acc_x) / result.config.sample_rate.param_value
     mask = (t >= tstart) & (t <= tend)
     t = t[mask]
     for ax, acc, color, rms_color in zip(['x', 'y', 'z'], [acc_x, acc_y, acc_z], ["red", "green", "blue"], ["orange", "lightgreen", "lightblue"]):
@@ -201,5 +218,3 @@ def plot(result: AcquisitionData, output_file: str, axis: str = "xyz",
     plt.legend(loc="upper right")
     plt.autoscale(enable=True, axis='y', tight=False)
     plt.savefig(output_file, dpi=200)
-
-

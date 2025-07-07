@@ -313,6 +313,8 @@ def _plot_psd(args):
     freq_max: float = args.fmax
     peaks: bool = args.peaks
     title: str = args.title
+    tstart: float = args.tstart
+    tend: float = args.tend
 
     output = output if output != '.' else os.path.splitext(csv_path)[0] + "_psd.png"
 
@@ -323,7 +325,7 @@ def _plot_psd(args):
         print(f"Error loading file: {e}")
         sys.exit(1)
     try:
-        plot_psd(result, output, axis, freq_min, freq_max, peaks, title)
+        plot_psd(result, output, axis, freq_min, freq_max, peaks, title, tstart, tend)
         print(f"Plot saved to {output}")
     except ModuleNotFoundError:
         print("Plotting not supported. To enable install with 'pip install picoquake[plot]'.")
@@ -341,6 +343,8 @@ def _plot_fft(args):
     freq_max: float = args.fmax
     peaks: bool = args.peaks
     title: str = args.title
+    tstart: float = args.tstart
+    tend: float = args.tend
 
     output = output if output != '.' else os.path.splitext(csv_path)[0] + "_fft.png"
 
@@ -351,7 +355,7 @@ def _plot_fft(args):
         print(f"Error loading file: {e}")
         sys.exit(1)
     try:
-        plot_fft(result, output, axis, freq_min, freq_max, peaks, title)
+        plot_fft(result, output, axis, freq_min, freq_max, peaks, title, tstart, tend)
         print(f"Plot saved to {output}")
     except ModuleNotFoundError:
         print("Plotting not supported. To enable install with 'pip install picoquake[plot]'.")
@@ -595,6 +599,8 @@ def main():
     fftplot_parser.add_argument("--fmax", type=float, default=1000.0, help="Maximum frequency to plot.")
     fftplot_parser.add_argument("--peaks", action="store_true", help="Annotate peaks on the plot.")
     fftplot_parser.add_argument("--title", help="Title of the plot.", default=None)
+    fftplot_parser.add_argument("--tstart", type=float, default=float("-inf"), help="Start time for analysis.")
+    fftplot_parser.add_argument("--tend", type=float, default=float("inf"), help="End time for analysis.")
     fftplot_parser.set_defaults(func=_plot_psd)
 
     # plot FFT
@@ -606,6 +612,8 @@ def main():
     fftplot_parser.add_argument("--fmax", type=float, default=1000.0, help="Maximum frequency to plot.")
     fftplot_parser.add_argument("--peaks", action="store_true", help="Annotate peaks on the plot.")
     fftplot_parser.add_argument("--title", help="Title of the plot.", default=None)
+    fftplot_parser.add_argument("--tstart", type=float, default=float("-inf"), help="Start time for analysis.")
+    fftplot_parser.add_argument("--tend", type=float, default=float("inf"), help="End time for analysis.")
     fftplot_parser.set_defaults(func=_plot_fft)
 
     # plot
