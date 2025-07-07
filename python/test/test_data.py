@@ -50,7 +50,7 @@ def test_acquisition_data():
     assert data.integrity == True
     assert data.duration == approx(2 * N / 1000, 1e-3)
     
-    with tempfile.NamedTemporaryFile(mode='w') as f:
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
         path = f.name
         print(path)
         data.csv_path = path
