@@ -1,0 +1,24 @@
+
+.md-header__title {
+  font-family: "Roboto Mono", monospace;
+  font-size: 1.4rem;
+}
+
+.md-typeset a {
+  color: #0969da;
+  text-decoration: underline;
+}
+
+:root {
+  --md-primary-fg-color:        #393939;
+  --md-primary-fg-color--light: #6a6a6a;
+  --md-primary-fg-color--dark:  #000000;
+  --md-primary-bg-color:        #ffffff;  
+  --md-primary-bg-color--light: #ffffffbd;
+
+  --md-accent-fg-color:             #8400ff;
+  --md-accent-fg-color--transparent:#8400ff35;
+  --md-accent-bg-color:             #ffffff;
+  --md-accent-bg-color--light:      #ffffff;
+}
+
