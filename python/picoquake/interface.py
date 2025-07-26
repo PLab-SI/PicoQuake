@@ -125,7 +125,10 @@ class PicoQuake:
         self._handler_thread.start()
         self._started = True
 
-        self._handshake()
+        try:
+            self._handshake()
+        except HandshakeError:
+            raise ConnectionError("Could not connect to the device, handshake failed")
         self._logger.info(f"Connected to: {self.device_info}")
         self._last_status_time = time()
 
@@ -467,7 +470,6 @@ class PicoQuake:
                     return p.device
         return None
 
-    @_handle_exceptions
     def _handshake(self, timeout: float = _HANDSHAKE_TIMEOUT):
         """
         Performs the handshake with the device.
