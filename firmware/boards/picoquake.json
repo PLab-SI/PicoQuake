@@ -10,7 +10,7 @@
           "usb_product": "PicoQuake"
         }
       },
-      "core": "arduino",
+      "core": "earlephilhower",
       "cpu": "cortex-m0plus",
       "extra_flags": "-D ARDUINO_RASPBERRY_PI_PICO -DARDUINO_ARCH_RP2040 -DUSBD_MAX_POWER_MA=500",
       "f_cpu": "133000000L",
@@ -21,7 +21,7 @@
         ]
       ],
       "mcu": "rp2040",
-      "variant": "RASPBERRY_PI_PICO"
+      "variant": "rpipico"
     },
     "debug": {
       "jlink_device": "RP2040_M0_0",

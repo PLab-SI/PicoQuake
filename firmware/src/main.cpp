@@ -33,7 +33,7 @@ typedef struct ImuSendStruct {
 //
 
 
-static constexpr char FIRMWARE_VERSION[] =  "1.0.1";
+static constexpr char FIRMWARE_VERSION[] =  "1.0.2";
 
 // LED on when SPI transfer ongoing or LED on when state sampling
 // #define LED_ON_SPI_TRANSFER_DEBUG
@@ -124,7 +124,7 @@ Error global_error = Error::NO_ERROR;
 
 
 bool handshake_complete = false;
-uint8_t flash_unique_id[8];
+uint8_t board_unique_id[8];
 
 
 void __time_critical_func(DataReadyInterrupt)(){
@@ -297,7 +297,7 @@ void StopSampling(){
 
 void SendHandshake() {
   DeviceInfo pb_device_info = DeviceInfo_init_zero;
-  strncpy((char*)pb_device_info.unique_id, (char*)flash_unique_id, sizeof(pb_device_info.unique_id));
+  strncpy((char*)pb_device_info.unique_id, (char*)board_unique_id, sizeof(pb_device_info.unique_id));
   strncpy((char*)pb_device_info.firmware, FIRMWARE_VERSION, sizeof(pb_device_info.firmware) - 1);
   pb_device_info.firmware[sizeof(FIRMWARE_VERSION)] = '\0';
   uint8_t pb_buffer[DeviceInfo_size];
@@ -472,11 +472,10 @@ void setup() {
   #ifdef DEBUG
   icm.RegisterDebugSerial(&Serial1);
   #endif
-  // TODO: disable interrupts before this
-  flash_get_unique_id(flash_unique_id);
 
+  
   raw_data_q = xQueueCreate(kSampleQueueSize, sizeof(ImuSendStruct));
-
+  
   // set INT1 as input for data ready interrupt
   pinMode(int1, INPUT);
   pinMode(usr_led, OUTPUT);
@@ -486,20 +485,22 @@ void setup() {
   #ifdef DEBUG
   Serial1.begin(115200);
   #endif
-  DEBUG_PRINTF("PicoQuake boot ok!");
+  DEBUG_PRINTF("PicoQuake boot ok!\r\n");
   
-  DEBUG_PRINTF("ID read OK\r\n");
+  // unique ID
+  pico_unique_board_id_t ubid;
+  pico_get_unique_board_id(&ubid);
+  memcpy(board_unique_id, ubid.id, sizeof(board_unique_id));
+  DEBUG_PRINTF("UID: ");
+  for(int i = 0; i < 8; i++){
+    DEBUG_PRINTF("%02X", board_unique_id[i]);
+  }
+  DEBUG_PRINTF("\r\n");
 
   // print firmware version
   DEBUG_PRINTF("Firmware version: %s\r\n", FIRMWARE_VERSION);
 
-  // print uid
-  Serial1.print("UID: ");
-  for(int i = 0; i < 8; i++){
-    Serial1.print(flash_unique_id[i], HEX);
-  }
-  DEBUG_PRINTF("\r\n");
-
+  // SPI
   SPI.setRX(spi_miso);
   SPI.setTX(spi_mosi);
   SPI.setSCK(spi_sck);
