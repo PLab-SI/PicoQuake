@@ -27,8 +27,8 @@ picoquake acquire [-h] [-s SECONDS] [-r SAMPLE_RATE] [-f FILTER] [-ar ACC_RANGE]
 - `-s`, `--seconds`: Duration of the acquisition in seconds (default: 2.0).
 - `-r`, `--sample_rate`: Sample rate in Hz. Range 12.5 - 4000 Hz. Closest available selected (default: 200.0).
 - `-f`, `--filter`: Filter frequency in Hz. Range 42 - 3979 Hz. Closest available selected (default: 42.0).
-- `-ar`, `--acc_range`: Acceleration range in g. Range 2 - 16 g. Closest available selected (default: 2.0).
-- `-gr`, `--gyro_range`: Gyro range in dps. Range 15.625 - 2000 dps. Closest available selected (default: 250.0).
+- `-ar`, `--acc_range`: Acceleration range in g. Range 2 - 16 g. Closest available selected (default: 4.0).
+- `-gr`, `--gyro_range`: Gyro range in dps. Range 15.625 - 2000 dps. Closest available selected (default: 1000.0).
 - `-a`, `--autostart`: Start acquisition without user confirmation.
 - `-y`, `--yes`: Skip overwrite prompt.
 
@@ -38,7 +38,7 @@ Start acquisition at a RMS threshold trigger.
 
 ```bash
 picoquake trigger [-h] [-r SAMPLE_RATE] [-f FILTER] [-ar ACC_RANGE]
-                       [-gr GYRO_RANGE] [--rms_threshold RMS_THRESHOLD]
+                       [-gr GYRO_RANGE] --rms_threshold RMS_THRESHOLD
                        [--pre_seconds PRE_SECONDS] [--post_seconds POST_SECONDS]
                        [--source {accel,gyro}] [-a AXIS] [--rms_window RMS_WINDOW]
                        [-y] short_id out
@@ -48,9 +48,9 @@ picoquake trigger [-h] [-r SAMPLE_RATE] [-f FILTER] [-ar ACC_RANGE]
 - `out`: The output CSV file.
 - `-r`, `--sample_rate`: Sample rate in Hz. Range 12.5 - 4000 Hz. Closest available selected (default: 200.0).
 - `-f`, `--filter`: Filter frequency in Hz. Range 42 - 3979 Hz. Closest available selected (default: 42.0).
-- `-ar`, `--acc_range`: Acceleration range in g. Range 2 - 16 g. Closest available selected (default: 2.0).
-- `-gr`, `--gyro_range`: Gyro range in dps. Range 15.625 - 2000 dps. Closest available selected (default: 250.0).
-- `--rms_threshold`: RMS threshold for triggering.
+- `-ar`, `--acc_range`: Acceleration range in g. Range 2 - 16 g. Closest available selected (default: 4.0).
+- `-gr`, `--gyro_range`: Gyro range in dps. Range 15.625 - 2000 dps. Closest available selected (default: 1000.0).
+- `--rms_threshold`: RMS threshold for triggering (required).
 - `--pre_seconds`: Duration before trigger in seconds (default: 0.0).
 - `--post_seconds`: Duration after trigger in seconds (default: 1.0).
 - `--source`: Source for triggering, must be 'accel' or 'gyro' (default: 'accel').
@@ -163,25 +163,25 @@ picoquake bootsel [-h] short_id
 Plot acquired acceleration data (time series).
 
 ```bash
-picoquake plot [-h] [-a AXIS] [--tstart TSTART] [--tend TEND] [--title TITLE] csv_path output
+picoquake plot [-h] [-a AXIS] [--tstart TSTART] [--tend TEND] [--title TITLE] [--rms] [--rms_detrend] [--rms_win RMS_WIN] csv_path output
 ```
 
 - `csv_path`: The CSV file containing the acquired data.
 - `output`: The output file to save the plot to. '.' to save next to the data file.
 - `-a`, `--axis`: Axis to plot, must be 'x', 'y', 'z', or a combination (default: xyz).
-- `--tstart`: Start time of the plot (default: 0.0).
-- `--tend`: End time of the plot (default: None).
+- `--tstart`: Start time of the plot (default: -inf).
+- `--tend`: End time of the plot (default: inf).
 - `--title`: Title of the plot (default: None).
 - `--rms`: Calculate and display RMS values.
 - `--rms_detrend`: Detrend the data before calculating RMS.
-- `--rms_window`: Window size for RMS calculation (default: 1.0 s).
+- `--rms_win`: Window size for RMS calculation (default: 1.0 s).
 
 #### plot_psd
 
 Plot Power Spectral Density of acquired acceleration data.
 
 ```bash
-picoquake plot_psd [-h] [-a AXIS] [--fmin FMIN] [--fmax FMAX] [--peaks] [--title TITLE] csv_path output
+picoquake plot_psd [-h] [-a AXIS] [--fmin FMIN] [--fmax FMAX] [--peaks] [--title TITLE] [--tstart TSTART] [--tend TEND] csv_path output
 ```
 
 - `csv_path`: The CSV file containing the acquired data.
@@ -191,13 +191,15 @@ picoquake plot_psd [-h] [-a AXIS] [--fmin FMIN] [--fmax FMAX] [--peaks] [--title
 - `--fmax`: Maximum frequency to plot (default: 1000.0).
 - `--peaks`: Annotate peaks on the plot.
 - `--title`: Title of the plot (default: None).
+- `--tstart`: Start time for analysis (default: -inf).
+- `--tend`: End time for analysis (default: inf).
 
 #### plot_fft
 
 Plot Fast Fourier Transform of acquired acceleration data.
 
 ```bash
-picoquake plot_fft [-h] [-a AXIS] [--fmin FMIN] [--fmax FMAX] [--peaks] [--title TITLE] csv_path output
+picoquake plot_fft [-h] [-a AXIS] [--fmin FMIN] [--fmax FMAX] [--peaks] [--title TITLE] [--tstart TSTART] [--tend TEND] csv_path output
 ```
 
 - `csv_path`: The CSV file containing the acquired data.
@@ -207,3 +209,5 @@ picoquake plot_fft [-h] [-a AXIS] [--fmin FMIN] [--fmax FMAX] [--peaks] [--title
 - `--fmax`: Maximum frequency to plot (default: 1000.0).
 - `--peaks`: Annotate peaks on the plot.
 - `--title`: Title of the plot (default: None).
+- `--tstart`: Start time for analysis (default: -inf).
+- `--tend`: End time for analysis (default: inf).
