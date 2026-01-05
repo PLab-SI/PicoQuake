@@ -33,7 +33,7 @@ if __name__ == "__main__":
     )
 
     # Start continuous acquisition
-    device.start_continuos()
+    device.start_continuous()
 
     # Read from device
     try:
