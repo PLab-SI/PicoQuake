@@ -44,6 +44,6 @@
 
 ## Where to get
 
-You can buy *PicoQuake* on [*Tindie*](https://www.tindie.com/products/34749/).
+You can buy *PicoQuake* on [*Lectronz*](https://www.lectronz.com/products/picoquake).
 
-<a href="https://www.tindie.com/products/plab/picoquake-usb-vibration-sensor/?ref=github_tindie_badge&utm_source=github&utm_medium=tindie_badge&utm_campaign=github"><img src="https://d2ss6ovg47m0r5.cloudfront.net/badges/tindie-mediums.png" alt="I sell on Tindie" width="150" height="78"></a>
+<a href="https://www.lectronz.com/products/picoquake" alt="Buy it on Lectronz"><img src="https://lectronz-images.b-cdn.net/static/badges/buy-it-on-lectronz-medium.png" /></a>
