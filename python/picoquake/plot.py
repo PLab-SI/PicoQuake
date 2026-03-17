@@ -2,7 +2,7 @@ from itertools import permutations
 
 from .data import *
 from .utils import get_axis_combinations
-from .analisys import running_rms
+from .analysis import running_rms
 
 def plot_psd(result: AcquisitionData, output_file: str, axis: str = "xyz",
              freq_min: float = 0, freq_max: Optional[float] = None,

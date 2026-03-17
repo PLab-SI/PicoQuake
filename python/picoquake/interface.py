@@ -20,7 +20,7 @@ from .msg import messages_pb2
 from .configuration import *
 from .data import *
 from .exceptions import *
-from .analisys import *
+from .analysis import *
 from .utils import *
 
 VID = 0x2E8A
@@ -59,10 +59,10 @@ class PicoQuake:
         configure_approx: Configures the device with approximated parameters.
         stop: Stops the device.
         acquire: Acquires data for a specified duration.
-        start_continuos: Starts the device in continuos mode.
-        stop_continuos: Stops the device in continuos mode.
-        read: Reads the specified number of samples received in continuos mode.
-        read_last: Reads the last sample received in continuos mode.
+        start_continuous: Starts the device in continuous mode.
+        stop_continuous: Stops the device in continuous mode.
+        read: Reads the specified number of samples received in continuous mode.
+        read_last: Reads the last sample received in continuous mode.
         trigger: Triggers the device to start sampling when the RMS value exceeds the threshold.
         reboot_to_bootsel: Reboots the device to BOOTSEL mode.
     """
@@ -102,7 +102,7 @@ class PicoQuake:
         self.config: Config = Config(SampleRate.hz_100, Filter.hz_42, AccRange.g_4, GyroRange.dps_1000)
         """The current configuration of the device."""
 
-        self._continuos_mode = False
+        self._continuous_mode = False
         self._acquire_n_samples = 0
         self._is_sampling = False
         self._sample_deque: deque = deque()
@@ -189,8 +189,8 @@ class PicoQuake:
                         or if `seconds` or `n_samples` are negative.
             ConnectionError: If the acquisition times out or if not all samples are received. Incomplete data is still saved.
         """
-        if self._continuos_mode:
-            raise RuntimeError("Continuos mode is active, stop it before acquiring")
+        if self._continuous_mode:
+            raise RuntimeError("Continuous mode is active, stop it before acquiring")
         if seconds != 0 and n_samples != 0:
             raise ValueError("Either seconds or n_samples must be specified, not both")
         if seconds == 0 and n_samples == 0:
@@ -247,26 +247,26 @@ class PicoQuake:
                 exception = AcquisitionDataCorrupted("Data corrupted")
         return data, exception
 
-    def start_continuos(self):
+    def start_continuous(self):
         """
-        Starts the device in continuos mode. Samples can be read using `read_last()`.
+        Starts the device in continuous mode. Samples can be read using `read_last()`.
         """
-        self._continuos_mode = True
+        self._continuous_mode = True
         self._sample_deque = deque(maxlen=_LEN_DEQUE)
         self._start_sampling()
-        self._logger.info("Continuos mode started")
+        self._logger.info("Continuous mode started")
 
-    def stop_continuos(self):
+    def stop_continuous(self):
         """
-        Stops the device in continuos mode.
+        Stops the device in continuous mode.
         """
-        self._continuos_mode = False
+        self._continuous_mode = False
         self._stop_sampling()
-        self._logger.info("Continuos mode stopped")
+        self._logger.info("Continuous mode stopped")
 
     def read(self, num: int=1, timeout: Optional[float]=None) -> List[IMUSample]:
         """
-        Reads the specified number of samples received in continuos mode.
+        Reads the specified number of samples received in continuous mode.
         Samples are returned in the same order as they were received.
         If timeout is None, blocks until the specified number of samples are received.
 
@@ -278,10 +278,10 @@ class PicoQuake:
             List of samples. Might be less than `num` if timeout is set.
 
         Raises:
-            RuntimeError: If continuos mode is not started.
+            RuntimeError: If continuous mode is not started.
         """
-        if not self._continuos_mode:
-            raise RuntimeError("Continuos mode not started")
+        if not self._continuous_mode:
+            raise RuntimeError("Continuous mode not started")
         start_time = time()
         while len(self._sample_deque) < num:
             if timeout is not None:
@@ -334,7 +334,7 @@ class PicoQuake:
         trigger_time = 0
         exception: Optional[Exception] = None
 
-        self.start_continuos()
+        self.start_continuous()
         self._logger.info(f"Triggering on RMS value {rms_threshold} g")
         self._logger.info(f"deque maxlen: {_LEN_DEQUE}")
 
@@ -345,7 +345,7 @@ class PicoQuake:
                 break
             if time() - start_time > _SAMPLE_START_TIMEOUT:
                 self._logger.error("Sampling not started in time")
-                self.stop_continuos()
+                self.stop_continuous()
                 raise ConnectionError("Sampling not started in time")
         # wait for trigger
         while True:
@@ -379,7 +379,7 @@ class PicoQuake:
                 break
             sleep(0.001)
         stop_t = time()
-        self.stop_continuos()
+        self.stop_continuous()
         # find idx by comparing count
         for i in range(len(self._sample_deque)):
             if self._sample_deque[i].count == sample_count_at_trigger - n_pre_samples:
@@ -418,7 +418,7 @@ class PicoQuake:
 
     def read_last(self, timeout: Optional[float]=None) -> Optional[IMUSample]:
         """
-        Reads the last sample received in continuos mode.
+        Reads the last sample received in continuous mode.
         If timeout is None, blocks until a sample is received.
 
         Args:
@@ -428,10 +428,10 @@ class PicoQuake:
             The latest sample received.
 
         Raises:
-            RuntimeError: If continuos mode is not started.
+            RuntimeError: If continuous mode is not started.
         """       
-        if not self._continuos_mode:
-            raise RuntimeError("Continuos mode not started")
+        if not self._continuous_mode:
+            raise RuntimeError("Continuous mode not started")
 
         start_time = time()
         while len(self._sample_deque) < 1:
@@ -534,7 +534,7 @@ class PicoQuake:
             return
         if self._is_sampling:
             self._stop_sampling()
-        self._continuos_mode = False
+        self._continuous_mode = False
         self._stop_event.set()
         self._logger.info("Device stopped")
 

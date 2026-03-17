@@ -288,7 +288,7 @@ def _live_display(args):
         sys.exit(1)
     try:   
         device.configure(SampleRate.hz_12_5, Filter.hz_42, AccRange.g_4, GyroRange.dps_250)
-        device.start_continuos()
+        device.start_continuous()
         while True:
             sample = device.read_last()
             print(sample)
@@ -448,7 +448,7 @@ def _test(args):
         sys.exit(1)
     try:
         device.configure(SampleRate.hz_12_5, Filter.hz_42, AccRange.g_4, GyroRange.dps_250)
-        device.start_continuos()
+        device.start_continuous()
         print("Point Z up...", end="", flush=True)
         while True:
             sample = cast(IMUSample, device.read_last())

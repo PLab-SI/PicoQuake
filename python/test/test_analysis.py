@@ -2,7 +2,7 @@ from pytest import approx
 import numpy as np
 
 from picoquake.data import IMUSample
-from picoquake.analisys import *
+from picoquake.analysis import *
 
 
 def test_mean():
